@@ -35,9 +35,9 @@ chmod +x install.sh
 
 ### 访问控制面板
 
-- **主页面**: http://localhost:8080
-- **日志页面**: http://localhost:8080/logs.html
-- **API接口**: http://localhost:8080/api
+- **主页面**: http://服务器IP:8080
+- **日志页面**: http://服务器IP:8080/logs.html
+- **API接口**: http://服务器IP:8080/api
 
 ### 一行命令自定义配置
 
@@ -66,7 +66,7 @@ curl -fsSL https://raw.githubusercontent.com/wudi2898/cc-main/main/install.sh | 
 
 ### Web控制面板
 
-1. 打开浏览器访问 http://localhost:8080
+1. 打开浏览器访问 http://服务器IP:8080
 2. 点击"创建新任务"按钮
 3. 填写目标URL和参数
 4. 点击"创建任务"并启动

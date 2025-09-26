@@ -71,7 +71,7 @@ echo -e "${GREEN}✅ 相关进程已停止${NC}"
 
 # 删除之前的项目
 echo -e "${CYAN}🗑️  清理之前的项目...${NC}"
-rm -rf /tmp/cc-main* 2>/dev/null || true
+rm -rf /tmp/cc-main 2>/dev/null || true
 echo -e "${GREEN}✅ 清理完成${NC}"
 
 # 1. 首先克隆项目代码
