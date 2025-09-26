@@ -13,6 +13,7 @@ import sys
 import json
 import time
 import psutil
+import pickle
 import signal
 import threading
 import subprocess
@@ -436,87 +437,24 @@ def get_system_stats_api():
     """获取系统状态"""
     return jsonify(system_stats)
 
-@app.route('/api/logs/stream/<task_id>')
-def stream_task_logs(task_id):
-    """特定任务的SSE日志流 - 简化版"""
-    def generate_task_logs():
-        # 发送连接成功消息
-        timestamp = datetime.now().strftime('%H:%M:%S')
-        message = f'开始监控任务: {task_id}'
+@app.route('/api/tasks/<task_id>/status')
+def get_task_status(task_id):
+    """获取任务状态 - 替代SSE"""
+    if task_id not in task_manager.tasks:
+        return jsonify({'error': '任务不存在'}), 404
         
-        data = {
-            'task_id': task_id,
-            'log': {
-                'timestamp': timestamp,
-                'level': 'INFO',
-                'message': message
-            }
-        }
-        yield f"data: {json.dumps(data)}\n\n"
-        
-        # 简单的轮询方式
-        while True:
-            if task_id in task_manager.tasks:
-                task = task_manager.tasks[task_id]
-                timestamp = datetime.now().strftime('%H:%M:%S')
-                
-                # 检查任务状态
-                if task['status'] == 'running':
-                    # 发送运行状态
-                    message = f'任务运行中 - 线程: {task["config"]["threads"]}, RPS: {task["config"]["rps"]}'
-                    data = {
-                        'task_id': task_id,
-                        'log': {
-                            'timestamp': timestamp,
-                            'level': 'INFO',
-                            'message': message
-                        }
-                    }
-                    yield f"data: {json.dumps(data)}\n\n"
-                elif task['status'] == 'completed':
-                    data = {
-                        'task_id': task_id,
-                        'log': {
-                            'timestamp': timestamp,
-                            'level': 'INFO',
-                            'message': '任务已完成'
-                        }
-                    }
-                    yield f"data: {json.dumps(data)}\n\n"
-                    break
-                elif task['status'] == 'stopped':
-                    data = {
-                        'task_id': task_id,
-                        'log': {
-                            'timestamp': timestamp,
-                            'level': 'WARNING',
-                            'message': '任务已停止'
-                        }
-                    }
-                    yield f"data: {json.dumps(data)}\n\n"
-                    break
-            else:
-                # 任务不存在
-                timestamp = datetime.now().strftime('%H:%M:%S')
-                data = {
-                    'task_id': task_id,
-                    'log': {
-                        'timestamp': timestamp,
-                        'level': 'ERROR',
-                        'message': '任务不存在'
-                    }
-                }
-                yield f"data: {json.dumps(data)}\n\n"
-                break
-            
-            time.sleep(1)  # 1秒间隔
+    task = task_manager.tasks[task_id]
     
-    return Response(generate_task_logs(), mimetype='text/event-stream', headers={
-        'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive',
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'Cache-Control'
-    })
+    status_info = {
+        'task_id': task_id,
+        'status': task['status'],
+        'config': task['config'],
+        'start_time': task.get('start_time'),
+        'end_time': task.get('end_time'),
+        'pid': task.get('pid')
+    }
+    
+    return jsonify(status_info)
 
 @socketio.on('connect')
 def handle_connect():

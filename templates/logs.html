@@ -240,7 +240,7 @@
                 });
         }
 
-        // 开始日志流
+        // 开始日志流 - 使用轮询替代SSE
         function startLogStream() {
             const taskId = document.getElementById('taskSelect').value;
             if (!taskId) {
@@ -252,8 +252,6 @@
             stopLogStream();
 
             currentTaskId = taskId;
-            currentEventSource = new EventSource(`/api/logs/stream/${taskId}`);
-            
             updateStatus('connecting', '连接中...');
             clearLogs();
             addLog('system', {
@@ -262,54 +260,87 @@
                 message: `开始监控任务: ${taskId}`
             });
 
-            currentEventSource.onmessage = function(event) {
-                try {
-                    const data = JSON.parse(event.data);
-                    if (data && data.log && data.task_id) {
-                        addLog(data.task_id, data.log);
+            // 开始轮询
+            pollTaskStatus();
+        }
+
+        // 轮询任务状态
+        function pollTaskStatus() {
+            if (!currentTaskId) return;
+
+            fetch(`/api/tasks/${currentTaskId}/status`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        addLog('system', {
+                            timestamp: new Date().toLocaleTimeString(),
+                            level: 'ERROR',
+                            message: data.error
+                        });
+                        updateStatus('error', '任务不存在');
+                        return;
                     }
-                } catch (e) {
-                    console.error('SSE数据解析失败:', e);
+
+                    updateStatus('connected', '已连接');
+                    
+                    // 根据状态添加日志
+                    const timestamp = new Date().toLocaleTimeString();
+                    let message = '';
+                    let level = 'INFO';
+
+                    switch(data.status) {
+                        case 'running':
+                            message = `任务运行中 - 线程: ${data.config.threads}, RPS: ${data.config.rps}`;
+                            level = 'INFO';
+                            break;
+                        case 'completed':
+                            message = '任务已完成';
+                            level = 'INFO';
+                            break;
+                        case 'stopped':
+                            message = '任务已停止';
+                            level = 'WARNING';
+                            break;
+                        case 'created':
+                            message = '任务已创建，等待启动';
+                            level = 'INFO';
+                            break;
+                        default:
+                            message = `任务状态: ${data.status}`;
+                            level = 'INFO';
+                    }
+
+                    addLog(data.task_id, {
+                        timestamp: timestamp,
+                        level: level,
+                        message: message
+                    });
+
+                    // 继续轮询
+                    if (data.status === 'running' || data.status === 'created') {
+                        setTimeout(pollTaskStatus, 2000); // 2秒轮询一次
+                    }
+                })
+                .catch(error => {
+                    console.error('轮询错误:', error);
                     addLog('system', {
                         timestamp: new Date().toLocaleTimeString(),
                         level: 'ERROR',
-                        message: '日志数据解析失败: ' + e.message
+                        message: '轮询失败: ' + error.message
                     });
-                }
-            };
-
-            currentEventSource.onopen = function() {
-                updateStatus('connected', '已连接');
-                addLog('system', {
-                    timestamp: new Date().toLocaleTimeString(),
-                    level: 'INFO',
-                    message: 'SSE连接已建立'
+                    updateStatus('error', '连接错误');
+                    
+                    // 3秒后重试
+                    setTimeout(() => {
+                        if (currentTaskId) {
+                            pollTaskStatus();
+                        }
+                    }, 3000);
                 });
-            };
-
-            currentEventSource.onerror = function(event) {
-                console.error('SSE连接错误:', event);
-                updateStatus('error', '连接错误');
-                addLog('system', {
-                    timestamp: new Date().toLocaleTimeString(),
-                    level: 'ERROR',
-                    message: 'SSE连接错误，3秒后重连'
-                });
-                // 3秒后重连
-                setTimeout(() => {
-                    if (currentTaskId) {
-                        startLogStream();
-                    }
-                }, 3000);
-            };
         }
 
         // 停止日志流
         function stopLogStream() {
-            if (currentEventSource) {
-                currentEventSource.close();
-                currentEventSource = null;
-            }
             currentTaskId = null;
             updateStatus('disconnected', '已断开');
         }
