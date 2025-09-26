@@ -441,12 +441,13 @@ def stream_task_logs(task_id):
     """特定任务的SSE日志流 - 简化版"""
     def generate_task_logs():
         # 发送连接成功消息
+        message = f'开始监控任务: {task_id}'
         yield f"data: {json.dumps({
             'task_id': task_id,
             'log': {
                 'timestamp': datetime.now().strftime('%H:%M:%S'),
                 'level': 'INFO',
-                'message': f'开始监控任务: {task_id}'
+                'message': message
             }
         })}\n\n"
         
@@ -458,12 +459,13 @@ def stream_task_logs(task_id):
                 # 检查任务状态
                 if task['status'] == 'running':
                     # 发送运行状态
+                    message = f'任务运行中 - 线程: {task["config"]["threads"]}, RPS: {task["config"]["rps"]}'
                     yield f"data: {json.dumps({
                         'task_id': task_id,
                         'log': {
                             'timestamp': datetime.now().strftime('%H:%M:%S'),
                             'level': 'INFO',
-                            'message': f'任务运行中 - 线程: {task["config"]["threads"]}, RPS: {task["config"]["rps"]}'
+                            'message': message
                         }
                     })}\n\n"
                 elif task['status'] == 'completed':
