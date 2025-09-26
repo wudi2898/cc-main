@@ -58,6 +58,8 @@ class TaskManager:
             'end_time': None,
             'duration': config.get('duration', 0),
             'scheduled_time': config.get('scheduled_time'),
+            'auto_restart': config.get('auto_restart', False),
+            'restart_interval': config.get('restart_interval', 60),  # 重启间隔（秒）
             'logs': []
         }
         
@@ -72,6 +74,14 @@ class TaskManager:
         task = self.tasks[task_id]
         if task['status'] == 'running':
             return False
+        
+        # 如果任务已完成，重置状态
+        if task['status'] == 'completed':
+            task['status'] = 'created'
+            task['pid'] = None
+            task['start_time'] = None
+            task['end_time'] = None
+            task['process'] = None
             
         # 构建命令
         config = task['config']
@@ -185,11 +195,34 @@ class TaskManager:
                         'log': log_entry
                     })
                     
-            process.wait()
+            # 等待进程结束
+            return_code = process.wait()
             
-            if task['status'] == 'running':
+            # 检查任务是否还在运行状态
+            task = self.tasks.get(task_id)
+            if task and task['status'] == 'running':
                 task['status'] = 'completed'
                 task['end_time'] = datetime.now()
+                task['logs'].append({
+                    'timestamp': datetime.now().strftime('%H:%M:%S'),
+                    'message': f'任务完成，退出码: {return_code}'
+                })
+                
+                # 如果启用了自动重启
+                if task.get('auto_restart', False):
+                    restart_interval = task.get('restart_interval', 60)
+                    task['logs'].append({
+                        'timestamp': datetime.now().strftime('%H:%M:%S'),
+                        'message': f'任务将在 {restart_interval} 秒后自动重启'
+                    })
+                    
+                    # 启动重启定时器
+                    restart_thread = threading.Thread(
+                        target=self._auto_restart_task,
+                        args=(task_id, restart_interval),
+                        daemon=True
+                    )
+                    restart_thread.start()
                 
         except Exception as e:
             task['logs'].append({
@@ -208,6 +241,18 @@ class TaskManager:
                 'timestamp': datetime.now().strftime('%H:%M:%S'),
                 'message': f"任务已运行 {duration} 秒，自动停止"
             })
+    
+    def _auto_restart_task(self, task_id, interval):
+        """自动重启任务"""
+        time.sleep(interval)
+        
+        task = self.tasks.get(task_id)
+        if task and task['status'] == 'completed':
+            task['logs'].append({
+                'timestamp': datetime.now().strftime('%H:%M:%S'),
+                'message': '开始自动重启任务'
+            })
+            self.start_task(task_id)
 
 # 初始化任务管理器
 task_manager = TaskManager()
@@ -295,6 +340,19 @@ def create_task():
                 return jsonify({'error': f'缺少必要参数: {field}'}), 400
                 
         task_id = task_manager.create_task(config)
+        
+        # 如果配置了立即启动
+        if config.get('auto_start', False):
+            if task_manager.start_task(task_id):
+                return jsonify({
+                    'task_id': task_id,
+                    'message': '任务创建并启动成功'
+                })
+            else:
+                return jsonify({
+                    'task_id': task_id,
+                    'message': '任务创建成功，但启动失败'
+                })
         
         return jsonify({
             'task_id': task_id,
