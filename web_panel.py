@@ -75,8 +75,12 @@ class TaskManager:
             
         # 构建命令
         config = task['config']
+        # 获取当前工作目录
+        current_dir = os.getcwd()
+        python_path = os.path.join(current_dir, 'venv', 'bin', 'python')
+        
         cmd = [
-            '/opt/cc-main/venv/bin/python', 'main.py',
+            python_path, 'main.py',
             config['mode'],
             config['url'],
             str(config['threads']),
@@ -89,10 +93,16 @@ class TaskManager:
             cmd.extend(['--timeout', str(config['timeout'])])
             
         try:
+            # 调试信息
+            print(f"启动任务: {task_id}")
+            print(f"命令: {' '.join(cmd)}")
+            print(f"工作目录: {current_dir}")
+            print(f"Python路径: {python_path}")
+            
             # 启动进程
             process = subprocess.Popen(
                 cmd,
-                cwd='/opt/cc-main',  # 设置工作目录
+                cwd=current_dir,  # 使用动态获取的工作目录
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 universal_newlines=True,
