@@ -107,25 +107,13 @@ func main() {
 	
 	// 启动服务器
 	fmt.Println("🚀 API服务器启动中...")
+	
 	// 获取服务器IP地址
 	serverIP := "localhost"
-	
-	// 尝试获取公网IP
-	if output, err := exec.Command("curl", "-s", "-4", "ifconfig.me").Output(); err == nil && len(output) > 0 {
-		serverIP = strings.TrimSpace(string(output))
-	} else if output, err := exec.Command("curl", "-s", "-4", "ipinfo.io/ip").Output(); err == nil && len(output) > 0 {
-		serverIP = strings.TrimSpace(string(output))
-	} else if output, err := exec.Command("curl", "-s", "-4", "icanhazip.com").Output(); err == nil && len(output) > 0 {
-		serverIP = strings.TrimSpace(string(output))
-	}
-	
-	// 如果获取公网IP失败，尝试获取本地IP
-	if serverIP == "localhost" || serverIP == "" {
-		if output, err := exec.Command("hostname", "-I").Output(); err == nil && len(output) > 0 {
-			ips := strings.Fields(string(output))
-			if len(ips) > 0 {
-				serverIP = ips[0]
-			}
+	if output, err := exec.Command("hostname", "-I").Output(); err == nil && len(output) > 0 {
+		ips := strings.Fields(string(output))
+		if len(ips) > 0 {
+			serverIP = ips[0]
 		}
 	}
 	
