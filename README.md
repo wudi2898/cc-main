@@ -14,14 +14,21 @@
 
 ## 🚀 快速开始
 
-### 一键安装运行
+### 一行命令安装运行
+
+```bash
+# 一行命令安装并运行（自动安装Go、构建、启动）
+curl -fsSL https://raw.githubusercontent.com/your-repo/cc-main/main/install.sh | bash
+```
+
+### 手动安装（可选）
 
 ```bash
 # 克隆项目
 git clone https://github.com/your-repo/cc-main.git
 cd cc-main
 
-# 一键安装环境并运行（自动安装Go、构建、启动）
+# 手动安装
 chmod +x install.sh
 ./install.sh
 ```
@@ -32,17 +39,27 @@ chmod +x install.sh
 - **日志页面**: http://localhost:8080/logs.html
 - **API接口**: http://localhost:8080/api
 
-### 自定义配置
+### 一行命令自定义配置
 
 ```bash
 # 自定义端口
-./install.sh -p 9090
+curl -fsSL https://raw.githubusercontent.com/your-repo/cc-main/main/install.sh | bash -s -- -p 9090
 
 # 自定义任务文件路径
-./install.sh -t /my-tasks.json
+curl -fsSL https://raw.githubusercontent.com/your-repo/cc-main/main/install.sh | bash -s -- -t /my-tasks.json
 
 # 查看帮助
-./install.sh -h
+curl -fsSL https://raw.githubusercontent.com/your-repo/cc-main/main/install.sh | bash -s -- -h
+```
+
+### 其他一行命令方式
+
+```bash
+# 使用wget
+wget -qO- https://raw.githubusercontent.com/your-repo/cc-main/main/install.sh | bash
+
+# 使用curl（推荐）
+curl -fsSL https://raw.githubusercontent.com/your-repo/cc-main/main/install.sh | bash
 ```
 
 ## 🎯 使用方法
