@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>实时日志 - CC压力测试</title>
+    <link href="css/bootstrap.min.css" rel="stylesheet">
+    <link href="css/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        .log-container {
+            height: 80vh;
+            overflow-y: auto;
+            background: #1e1e1e;
+            color: #d4d4d4;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            padding: 1rem;
+            border-radius: 0.375rem;
+        }
+        .log-entry {
+            margin-bottom: 0.5rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            word-wrap: break-word;
+        }
+        .log-info { color: #4fc3f7; }
+        .log-success { color: #81c784; }
+        .log-warning { color: #ffb74d; }
+        .log-error { color: #f48fb1; }
+        .log-debug { color: #ba68c8; }
+        .stats-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .loading {
+            display: none;
+        }
+        .loading.show {
+            display: block;
+        }
+    </style>
+</head>
+<body class="bg-light">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="index.html">
+                <i class="bi bi-arrow-left"></i> 返回控制面板
+            </a>
+            <div class="navbar-nav ms-auto">
+                <span class="navbar-text" id="taskInfo">选择任务查看日志</span>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <!-- 任务选择 -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">选择任务</h5>
+                        <div class="row">
+                            <div class="col-md-8">
+                                <select class="form-select" id="taskSelect" onchange="selectTask()">
+                                    <option value="">请选择任务...</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <button class="btn btn-primary" onclick="refreshTasks()">
+                                    <i class="bi bi-arrow-clockwise"></i> 刷新任务列表
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 任务统计 -->
+        <div class="row mb-4" id="taskStats" style="display: none;">
+            <!-- 统计卡片将在这里动态加载 -->
+        </div>
+
+        <!-- 日志控制 -->
+        <div class="row mb-3" id="logControls" style="display: none;">
+            <div class="col-12">
+                <button class="btn btn-primary" onclick="clearLogs()">
+                    <i class="bi bi-trash"></i> 清空日志
+                </button>
+                <button class="btn btn-success" onclick="toggleAutoScroll()">
+                    <i class="bi bi-arrow-down-circle"></i> <span id="autoScrollText">自动滚动</span>
+                </button>
+                <button class="btn btn-info" onclick="refreshLogs()">
+                    <i class="bi bi-arrow-clockwise"></i> 刷新
+                </button>
+                <div class="loading spinner-border text-primary" role="status">
+                    <span class="visually-hidden">加载中...</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 日志显示区域 -->
+        <div class="row" id="logRow" style="display: none;">
+            <div class="col-12">
+                <div class="log-container" id="logContainer">
+                    <!-- 日志条目将在这里动态加载 -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/bootstrap.bundle.min.js"></script>
+    <script src="js/logs.js"></script>
+</body>
+</html>
