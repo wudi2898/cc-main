@@ -57,7 +57,7 @@
 curl -fsSL https://raw.githubusercontent.com/wudi2898/cc-main/main/one_click_all.sh | sudo bash
 ```
 
-**安装完成后自动启动Web面板**: http://localhost:5000
+**安装完成后自动启动Web面板**: http://服务器IP:5000
 
 ### 安装功能
 - ✅ 自动下载项目
@@ -66,7 +66,7 @@ curl -fsSL https://raw.githubusercontent.com/wudi2898/cc-main/main/one_click_all
 - ✅ 配置开机自启
 - ✅ 服务器性能优化
 - ✅ 系统网络优化
-- ✅ 创建管理命令
+- ✅ 自动启动服务
 - ✅ 安全权限设置
 
 ## 🚀 快速开始
@@ -311,23 +311,35 @@ ulimit -n 65535
 ### 服务管理命令
 ```bash
 # 启动服务
-cc-start
+sudo systemctl start cc-main
 
 # 停止服务
-cc-stop
+sudo systemctl stop cc-main
 
 # 重启服务
-cc-restart
+sudo systemctl restart cc-main
 
 # 查看状态
-cc-status
+sudo systemctl status cc-main
 
 # 查看日志
-cc-logs
+sudo journalctl -u cc-main -f
 ```
 
 ### 开机自启
-安装后自动配置开机自启，无需手动设置。
+安装后自动配置开机自启，服务会在系统启动时自动运行。
+
+### 服务状态检查
+```bash
+# 检查服务是否正在运行
+sudo systemctl is-active cc-main
+
+# 检查服务是否已启用开机自启
+sudo systemctl is-enabled cc-main
+
+# 查看服务详细信息
+sudo systemctl show cc-main
+```
 
 ### 服务配置
 - **安装目录**: `/opt/cc-main`
@@ -416,16 +428,35 @@ grep "成功" attack.log | wc -l
 
 ### 常见问题
 
-#### 1. 依赖安装问题
+#### 1. 服务未自动启动
+```bash
+# 检查服务状态
+sudo systemctl status cc-main
+
+# 手动启动服务
+sudo systemctl start cc-main
+
+# 查看启动日志
+sudo journalctl -u cc-main -f
+
+# 重新安装（如果问题持续）
+curl -fsSL https://raw.githubusercontent.com/wudi2898/cc-main/main/one_click_all.sh | sudo bash
+```
+
+#### 2. 依赖安装问题
 ```bash
 # PySocks未安装
 pip install PySocks
 
 # Flask组件缺失
 pip install flask flask-socketio psutil
+
+# 重新安装所有依赖
+cd /opt/cc-main
+sudo -u cc-main /opt/cc-main/venv/bin/pip install -r requirements.txt
 ```
 
-#### 2. 代理连接失败
+#### 3. 代理连接失败
 ```bash
 # 检查代理可用性
 python3 main.py check https://httpbin.org/ip 100 10
@@ -434,7 +465,7 @@ python3 main.py check https://httpbin.org/ip 100 10
 python3 proxy_benchmark.py
 ```
 
-#### 3. CF绕过效果差
+#### 4. CF绕过效果差
 ```bash
 # 降低攻击强度
 python3 main.py cc https://cf-site.com 50 5 --cf-bypass
@@ -443,7 +474,24 @@ python3 main.py cc https://cf-site.com 50 5 --cf-bypass
 python3 main.py cc https://cf-site.com 100 10 --cf-bypass --timeout 20
 ```
 
-#### 4. 性能不佳
+#### 5. 服务重复执行
+```bash
+# 停止所有相关进程
+sudo pkill -f "web_panel.py"
+
+# 停止并禁用服务
+sudo systemctl stop cc-main
+sudo systemctl disable cc-main
+
+# 删除服务文件
+sudo rm -f /etc/systemd/system/cc-main.service
+sudo systemctl daemon-reload
+
+# 重新安装
+curl -fsSL https://raw.githubusercontent.com/wudi2898/cc-main/main/one_click_all.sh | sudo bash
+```
+
+#### 6. 性能不佳
 ```bash
 # 内存不足
 --max-connections 1000 --connections-per-proxy 20
@@ -482,7 +530,15 @@ python3 performance_test.py
 
 ## 📝 更新日志
 
-### v3.0.0 (最新)
+### v3.1.0 (最新)
+- ✅ 修复服务自动启动问题
+- ✅ 优化一键安装脚本
+- ✅ 修复服务重复执行问题
+- ✅ 改进错误处理和日志
+- ✅ 更新管理命令为systemctl
+- ✅ 增强故障排除指南
+
+### v3.0.0
 - ✅ 全新超负荷模式
 - ✅ 纯发送技术
 - ✅ 连接池优化
