@@ -2,7 +2,9 @@ package main
 
 import (
 	"encoding/json"
+	"flag"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -69,9 +71,17 @@ var (
 			return true
 		},
 	}
+	tasksFile = "/cc-tasks.json"
+	port      = "8080"
 )
 
 func main() {
+	// 解析命令行参数
+	parseArgs()
+	
+	// 加载任务列表
+	loadTasks()
+	
 	// 创建路由器
 	r := mux.NewRouter()
 	
@@ -97,10 +107,11 @@ func main() {
 	
 	// 启动服务器
 	fmt.Println("🚀 API服务器启动中...")
-	fmt.Println("📱 前端地址: http://localhost:8080")
-	fmt.Println("🔗 API地址: http://localhost:8080/api")
+	fmt.Printf("📱 前端地址: http://localhost:%s\n", port)
+	fmt.Printf("🔗 API地址: http://localhost:%s/api\n", port)
+	fmt.Printf("📊 日志页面: http://localhost:%s/logs.html\n", port)
 	
-	log.Fatal(http.ListenAndServe(":8080", r))
+	log.Fatal(http.ListenAndServe(":"+port, r))
 }
 
 // API处理器函数
@@ -134,6 +145,9 @@ func createTask(w http.ResponseWriter, r *http.Request) {
 	tasksMutex.Lock()
 	tasks[task.ID] = &task
 	tasksMutex.Unlock()
+	
+	// 保存任务列表
+	saveTasks()
 	
 	// 如果状态是running，立即启动
 	if task.Status == StatusRunning {
@@ -196,6 +210,9 @@ func updateTask(w http.ResponseWriter, r *http.Request) {
 	
 	tasksMutex.Unlock()
 	
+	// 保存任务列表
+	saveTasks()
+	
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	json.NewEncoder(w).Encode(task)
@@ -220,6 +237,9 @@ func deleteTask(w http.ResponseWriter, r *http.Request) {
 	
 	delete(tasks, taskId)
 	tasksMutex.Unlock()
+	
+	// 保存任务列表
+	saveTasks()
 	
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.WriteHeader(http.StatusOK)
@@ -247,6 +267,9 @@ func startTask(w http.ResponseWriter, r *http.Request) {
 	now := time.Now()
 	task.StartedAt = &now
 	tasksMutex.Unlock()
+	
+	// 保存任务列表
+	saveTasks()
 	
 	// 启动任务进程
 	go startTaskProcess(task)
@@ -396,7 +419,69 @@ func startTaskProcess(task *Task) {
 	}()
 }
 
+// 解析命令行参数
+func parseArgs() {
+	flag.StringVar(&port, "port", "8080", "服务器端口")
+	flag.StringVar(&tasksFile, "tasks-file", "/cc-tasks.json", "任务列表文件路径")
+	flag.Parse()
+}
+
 // 生成任务ID
 func generateTaskID() string {
 	return fmt.Sprintf("task_%d_%d", time.Now().Unix(), time.Now().Nanosecond()%1000)
+}
+
+// 加载任务列表
+func loadTasks() {
+	// 检查文件是否存在
+	if _, err := os.Stat(tasksFile); os.IsNotExist(err) {
+		// 文件不存在，创建空的任务列表
+		saveTasks()
+		return
+	}
+	
+	// 读取文件
+	data, err := ioutil.ReadFile(tasksFile)
+	if err != nil {
+		log.Printf("读取任务文件失败: %v", err)
+		return
+	}
+	
+	// 解析JSON
+	var taskList []*Task
+	if err := json.Unmarshal(data, &taskList); err != nil {
+		log.Printf("解析任务文件失败: %v", err)
+		return
+	}
+	
+	// 加载到内存
+	tasksMutex.Lock()
+	for _, task := range taskList {
+		tasks[task.ID] = task
+	}
+	tasksMutex.Unlock()
+	
+	log.Printf("✅ 加载了 %d 个任务", len(taskList))
+}
+
+// 保存任务列表
+func saveTasks() {
+	tasksMutex.RLock()
+	var taskList []*Task
+	for _, task := range tasks {
+		taskList = append(taskList, task)
+	}
+	tasksMutex.RUnlock()
+	
+	// 转换为JSON
+	data, err := json.MarshalIndent(taskList, "", "  ")
+	if err != nil {
+		log.Printf("序列化任务失败: %v", err)
+		return
+	}
+	
+	// 写入文件
+	if err := ioutil.WriteFile(tasksFile, data, 0644); err != nil {
+		log.Printf("保存任务文件失败: %v", err)
+	}
 }
