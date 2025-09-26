@@ -297,9 +297,14 @@ fi
 echo -e "${CYAN}🌐 获取服务器IP地址...${NC}"
 SERVER_IP=""
 if command -v curl &> /dev/null; then
-    SERVER_IP=$(curl -s ifconfig.me 2>/dev/null || curl -s ipinfo.io/ip 2>/dev/null || curl -s icanhazip.com 2>/dev/null)
+    # 优先获取IPv4地址
+    SERVER_IP=$(curl -s -4 ifconfig.me 2>/dev/null || curl -s -4 ipinfo.io/ip 2>/dev/null || curl -s -4 icanhazip.com 2>/dev/null)
 fi
 if [ -z "$SERVER_IP" ]; then
+    # 如果获取失败，尝试获取本地IP
+    SERVER_IP=$(hostname -I | awk '{print $1}' 2>/dev/null || echo "localhost")
+fi
+if [ -z "$SERVER_IP" ] || [ "$SERVER_IP" = "localhost" ]; then
     SERVER_IP="localhost"
 fi
 
