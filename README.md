@@ -51,22 +51,16 @@
 
 ## 🚀 一键安装
 
-### 超简单安装（推荐）
+### 一键安装（推荐）
 ```bash
 # Linux系统
-curl -fsSL https://raw.githubusercontent.com/wudi2898/cc-main/main/simple_install.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/wudi2898/cc-main/main/one_click_all.sh | sudo bash
 
 # macOS系统
-curl -fsSL https://raw.githubusercontent.com/wudi2898/cc-main/main/simple_install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/wudi2898/cc-main/main/one_click_all.sh | bash
 ```
 
 **安装完成后自动启动Web面板**: http://服务器IP:5000
-
-### 完整功能安装
-```bash
-# 包含服务器优化的完整安装
-curl -fsSL https://raw.githubusercontent.com/wudi2898/cc-main/main/one_click_all.sh | sudo bash
-```
 
 ### 安装功能
 - ✅ 自动下载项目

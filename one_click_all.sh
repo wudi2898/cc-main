@@ -4,6 +4,16 @@
 
 set -e
 
+# 错误处理函数
+handle_error() {
+    echo -e "${RED}❌ 安装过程中出现错误！${NC}"
+    echo -e "${BLUE}请检查上面的错误信息，或尝试手动安装${NC}"
+    exit 1
+}
+
+# 设置错误陷阱
+trap 'handle_error' ERR
+
 # 颜色定义
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
@@ -44,44 +54,107 @@ cd "$PROJECT_DIR"
 
 # 下载必要文件
 echo -e "${BLUE}📥 下载项目文件...${NC}"
-curl -fsSL https://raw.githubusercontent.com/wudi2898/cc-main/main/main.py -o main.py
-curl -fsSL https://raw.githubusercontent.com/wudi2898/cc-main/main/web_panel.py -o web_panel.py
-curl -fsSL https://raw.githubusercontent.com/wudi2898/cc-main/main/requirements.txt -o requirements.txt
+curl -fsSL https://raw.githubusercontent.com/wudi2898/cc-main/main/main.py -o main.py || {
+    echo -e "${RED}下载main.py失败${NC}"
+    exit 1
+}
+curl -fsSL https://raw.githubusercontent.com/wudi2898/cc-main/main/web_panel.py -o web_panel.py || {
+    echo -e "${RED}下载web_panel.py失败${NC}"
+    exit 1
+}
+curl -fsSL https://raw.githubusercontent.com/wudi2898/cc-main/main/requirements.txt -o requirements.txt || {
+    echo -e "${RED}下载requirements.txt失败${NC}"
+    exit 1
+}
 
 # 创建配置目录和文件
 mkdir -p config
-curl -fsSL https://raw.githubusercontent.com/wudi2898/cc-main/main/accept_headers.txt -o config/accept_headers.txt
-curl -fsSL https://raw.githubusercontent.com/wudi2898/cc-main/main/referers.txt -o config/referers.txt
-curl -fsSL https://raw.githubusercontent.com/wudi2898/cc-main/main/socks5.txt -o config/socks5.txt
-curl -fsSL https://raw.githubusercontent.com/wudi2898/cc-main/main/http_proxies.txt -o config/http_proxies.txt
+curl -fsSL https://raw.githubusercontent.com/wudi2898/cc-main/main/accept_headers.txt -o config/accept_headers.txt || {
+    echo -e "${RED}下载accept_headers.txt失败${NC}"
+    exit 1
+}
+curl -fsSL https://raw.githubusercontent.com/wudi2898/cc-main/main/referers.txt -o config/referers.txt || {
+    echo -e "${RED}下载referers.txt失败${NC}"
+    exit 1
+}
+curl -fsSL https://raw.githubusercontent.com/wudi2898/cc-main/main/socks5.txt -o config/socks5.txt || {
+    echo -e "${RED}下载socks5.txt失败${NC}"
+    exit 1
+}
+curl -fsSL https://raw.githubusercontent.com/wudi2898/cc-main/main/http_proxies.txt -o config/http_proxies.txt || {
+    echo -e "${RED}下载http_proxies.txt失败${NC}"
+    exit 1
+}
+
+# 创建templates目录和文件
+mkdir -p templates
+curl -fsSL https://raw.githubusercontent.com/wudi2898/cc-main/main/templates/index.html -o templates/index.html || {
+    echo -e "${RED}下载index.html失败${NC}"
+    exit 1
+}
+
+# 创建logs目录
+mkdir -p logs
 
 # 设置权限
-chmod +x *.py
+chmod +x *.py 2>/dev/null || true
 
 # 安装系统依赖
 echo -e "${BLUE}📦 安装系统依赖...${NC}"
 if [ "$OS" = "linux" ]; then
     if command -v apt-get &> /dev/null; then
         apt-get update
-        apt-get install -y python3 python3-pip python3-venv curl
+        apt-get install -y python3 python3-pip python3-venv curl wget
     elif command -v yum &> /dev/null; then
         yum update -y
-        yum install -y python3 python3-pip curl
+        yum install -y python3 python3-pip curl wget
+    elif command -v dnf &> /dev/null; then
+        dnf update -y
+        dnf install -y python3 python3-pip curl wget
+    else
+        echo -e "${BLUE}使用系统默认Python...${NC}"
     fi
 elif [ "$OS" = "macos" ]; then
     if ! command -v brew &> /dev/null; then
         echo -e "${BLUE}安装Homebrew...${NC}"
-        /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+        /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" || true
     fi
-    brew install python3 curl
+    if command -v brew &> /dev/null; then
+        brew install python3 curl wget
+    else
+        echo -e "${BLUE}使用系统默认Python...${NC}"
+    fi
 fi
 
 # 创建Python虚拟环境
 echo -e "${BLUE}🐍 设置Python环境...${NC}"
-python3 -m venv venv
+python3 -m venv venv || {
+    echo -e "${RED}创建虚拟环境失败，尝试使用系统Python...${NC}"
+    # 如果venv失败，直接使用系统Python
+    mkdir -p venv/bin
+    ln -sf $(which python3) venv/bin/python
+    ln -sf $(which pip3) venv/bin/pip
+}
+
 source venv/bin/activate
-pip install --upgrade pip
-pip install -r requirements.txt
+
+# 验证Python环境
+if ! python --version &> /dev/null; then
+    echo -e "${RED}Python环境验证失败${NC}"
+    exit 1
+fi
+
+echo -e "${BLUE}Python版本: $(python --version)${NC}"
+
+# 安装依赖
+pip install --upgrade pip || pip3 install --upgrade pip
+pip install -r requirements.txt || pip3 install -r requirements.txt
+
+# 验证关键依赖
+python -c "import flask, flask_socketio, psutil, socks" || {
+    echo -e "${RED}依赖安装验证失败${NC}"
+    exit 1
+}
 
 # 创建启动脚本
 cat > start.sh << 'EOF'
@@ -133,14 +206,15 @@ EOF
     systemctl enable cc-main
     systemctl start cc-main
     
-    sleep 3
+    sleep 5
     
     if systemctl is-active --quiet cc-main; then
         echo -e "${GREEN}✅ 服务启动成功！${NC}"
-        SERVER_IP=$(hostname -I | awk '{print $1}')
+        SERVER_IP=$(hostname -I | awk '{print $1}' 2>/dev/null || echo "localhost")
         echo -e "${GREEN}🌐 Web面板: http://$SERVER_IP:5000${NC}"
     else
         echo -e "${RED}❌ 服务启动失败，请检查日志: journalctl -u cc-main -f${NC}"
+        echo -e "${BLUE}尝试手动启动: systemctl start cc-main${NC}"
     fi
 else
     echo -e "${GREEN}✅ 安装完成！${NC}"
