@@ -622,6 +622,9 @@ class AttackManager:
                 self.successful_requests += 1
             else:
                 self.failed_requests += 1
+            # 调试信息
+            if self.total_requests % 10 == 0:  # 每10个请求打印一次
+                print(f"DEBUG: 总请求={self.total_requests}, 成功={self.successful_requests}, 失败={self.failed_requests}")
     
     def get_stats(self) -> Dict:
         """获取当前统计信息"""
