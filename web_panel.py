@@ -199,8 +199,37 @@ class TaskManager:
         task = self.tasks[task_id]
         
         try:
-            # 等待进程结束
-            return_code = process.wait()
+            # 实时读取进程输出
+            while process.poll() is None:  # 进程还在运行
+                try:
+                    line = process.stdout.readline()
+                    if line:
+                        line = line.decode('utf-8').strip()
+                        
+                        # 解析统计信息
+                        if line.startswith('STATS_JSON:'):
+                            try:
+                                stats_json = line[11:]  # 去掉 'STATS_JSON:' 前缀
+                                stats = json.loads(stats_json)
+                                task['stats'] = stats
+                                print(f"更新任务 {task_id} 统计: {stats}")
+                            except json.JSONDecodeError as e:
+                                print(f"解析统计JSON失败: {e}")
+                        
+                        # 记录其他日志
+                        task['logs'].append({
+                            'timestamp': datetime.now().strftime('%H:%M:%S'),
+                            'message': line
+                        })
+                        
+                except Exception as e:
+                    print(f"读取进程输出错误: {e}")
+                    break
+                    
+                time.sleep(0.1)  # 避免CPU占用过高
+            
+            # 进程结束
+            return_code = process.returncode
             
             # 检查任务是否还在运行状态
             task = self.tasks.get(task_id)

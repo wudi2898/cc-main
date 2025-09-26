@@ -668,11 +668,25 @@ class AttackManager:
               f"平均RPS: {stats['avg_rps']} | "
               f"运行时间: {stats['uptime']}s", end="", flush=True)
     
+    def output_stats_json(self) -> None:
+        """输出JSON格式的统计信息"""
+        stats = self.get_stats()
+        stats_json = {
+            'total_requests': stats['total_requests'],
+            'successful_requests': stats['successful_requests'],
+            'failed_requests': stats['failed_requests'],
+            'current_rps': stats['current_rps'],
+            'avg_rps': stats['avg_rps'],
+            'uptime': stats['uptime']
+        }
+        print(f"STATS_JSON:{json.dumps(stats_json)}", flush=True)
+    
     def _stats_worker(self) -> None:
         """统计工作线程"""
         while self.running:
             try:
                 self.print_stats()
+                self.output_stats_json()  # 输出JSON格式供web_panel解析
                 time.sleep(1)  # 每秒更新一次
             except Exception as e:
                 self.logger.debug(f"统计线程错误: {e}")
@@ -810,6 +824,11 @@ class AttackManager:
                                 except:
                                     pass
                                 del connection_cache[proxy_str]
+                            # 记录失败统计
+                            self.update_stats(success=False)
+                    else:
+                        # 无法获取连接，记录失败统计
+                        self.update_stats(success=False)
                 
                 # 批量间隔
                 if not self.config.no_delay:
