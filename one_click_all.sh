@@ -48,53 +48,34 @@ fi
 
 echo -e "${BLUE}项目目录: $PROJECT_DIR${NC}"
 
-# 创建项目目录
-mkdir -p "$PROJECT_DIR"
+# 克隆项目
+echo -e "${BLUE}📥 克隆项目仓库...${NC}"
+if [ -d "$PROJECT_DIR" ]; then
+    echo -e "${BLUE}项目目录已存在，备份为 ${PROJECT_DIR}.backup${NC}"
+    mv "$PROJECT_DIR" "${PROJECT_DIR}.backup"
+fi
+
+git clone https://github.com/wudi2898/cc-main.git "$PROJECT_DIR" || {
+    echo -e "${RED}克隆项目失败，尝试使用curl下载...${NC}"
+    # 如果git失败，回退到curl方式
+    mkdir -p "$PROJECT_DIR"
+    cd "$PROJECT_DIR"
+    
+    # 下载主文件
+    curl -fsSL https://raw.githubusercontent.com/wudi2898/cc-main/main/main.py -o main.py
+    curl -fsSL https://raw.githubusercontent.com/wudi2898/cc-main/main/web_panel.py -o web_panel.py
+    curl -fsSL https://raw.githubusercontent.com/wudi2898/cc-main/main/requirements.txt -o requirements.txt
+    
+    # 创建目录并下载配置文件
+    mkdir -p config templates logs
+    curl -fsSL https://raw.githubusercontent.com/wudi2898/cc-main/main/accept_headers.txt -o config/accept_headers.txt
+    curl -fsSL https://raw.githubusercontent.com/wudi2898/cc-main/main/referers.txt -o config/referers.txt
+    curl -fsSL https://raw.githubusercontent.com/wudi2898/cc-main/main/socks5.txt -o config/socks5.txt
+    curl -fsSL https://raw.githubusercontent.com/wudi2898/cc-main/main/http_proxies.txt -o config/http_proxies.txt
+    curl -fsSL https://raw.githubusercontent.com/wudi2898/cc-main/main/templates/index.html -o templates/index.html
+}
+
 cd "$PROJECT_DIR"
-
-# 下载必要文件
-echo -e "${BLUE}📥 下载项目文件...${NC}"
-curl -fsSL https://raw.githubusercontent.com/wudi2898/cc-main/main/main.py -o main.py || {
-    echo -e "${RED}下载main.py失败${NC}"
-    exit 1
-}
-curl -fsSL https://raw.githubusercontent.com/wudi2898/cc-main/main/web_panel.py -o web_panel.py || {
-    echo -e "${RED}下载web_panel.py失败${NC}"
-    exit 1
-}
-curl -fsSL https://raw.githubusercontent.com/wudi2898/cc-main/main/requirements.txt -o requirements.txt || {
-    echo -e "${RED}下载requirements.txt失败${NC}"
-    exit 1
-}
-
-# 创建配置目录和文件
-mkdir -p config
-curl -fsSL https://raw.githubusercontent.com/wudi2898/cc-main/main/config/accept_headers.txt -o config/accept_headers.txt || {
-    echo -e "${RED}下载accept_headers.txt失败${NC}"
-    exit 1
-}
-curl -fsSL https://raw.githubusercontent.com/wudi2898/cc-main/main/config/referers.txt -o config/referers.txt || {
-    echo -e "${RED}下载referers.txt失败${NC}"
-    exit 1
-}
-curl -fsSL https://raw.githubusercontent.com/wudi2898/cc-main/main/config/socks5.txt -o config/socks5.txt || {
-    echo -e "${RED}下载socks5.txt失败${NC}"
-    exit 1
-}
-curl -fsSL https://raw.githubusercontent.com/wudi2898/cc-main/main/config/http_proxies.txt -o config/http_proxies.txt || {
-    echo -e "${RED}下载http_proxies.txt失败${NC}"
-    exit 1
-}
-
-# 创建templates目录和文件
-mkdir -p templates
-curl -fsSL https://raw.githubusercontent.com/wudi2898/cc-main/main/templates/index.html -o templates/index.html || {
-    echo -e "${RED}下载index.html失败${NC}"
-    exit 1
-}
-
-# 创建logs目录
-mkdir -p logs
 
 # 设置权限
 chmod +x *.py 2>/dev/null || true
@@ -104,13 +85,13 @@ echo -e "${BLUE}📦 安装系统依赖...${NC}"
 if [ "$OS" = "linux" ]; then
     if command -v apt-get &> /dev/null; then
         apt-get update
-        apt-get install -y python3 python3-pip python3-venv curl wget
+        apt-get install -y python3 python3-pip python3-venv curl wget git
     elif command -v yum &> /dev/null; then
         yum update -y
-        yum install -y python3 python3-pip curl wget
+        yum install -y python3 python3-pip curl wget git
     elif command -v dnf &> /dev/null; then
         dnf update -y
-        dnf install -y python3 python3-pip curl wget
+        dnf install -y python3 python3-pip curl wget git
     else
         echo -e "${BLUE}使用系统默认Python...${NC}"
     fi
@@ -120,7 +101,7 @@ elif [ "$OS" = "macos" ]; then
         /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" || true
     fi
     if command -v brew &> /dev/null; then
-        brew install python3 curl wget
+        brew install python3 curl wget git
     else
         echo -e "${BLUE}使用系统默认Python...${NC}"
     fi
