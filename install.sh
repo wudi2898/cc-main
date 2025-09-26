@@ -78,7 +78,7 @@ echo -e "${GREEN}✅ 清理完成${NC}"
 echo -e "${CYAN}📥 获取项目代码...${NC}"
 
 # 创建项目目录
-PROJECT_DIR="/tmp/cc-main-$(date +%s)"
+PROJECT_DIR="/tmp/cc-main"
 mkdir -p "$PROJECT_DIR"
 cd "$PROJECT_DIR"
 
