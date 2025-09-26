@@ -205,6 +205,14 @@
         // 页面加载时获取任务列表
         document.addEventListener('DOMContentLoaded', function() {
             loadTasks();
+            
+            // 检查URL参数
+            const urlParams = new URLSearchParams(window.location.search);
+            const taskId = urlParams.get('task');
+            if (taskId) {
+                document.getElementById('taskSelect').value = taskId;
+                startLogStream();
+            }
         });
 
         // 加载任务列表

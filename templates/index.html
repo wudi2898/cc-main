@@ -349,28 +349,16 @@
                 </div>
             </div>
 
-            <!-- 实时日志 -->
+            <!-- 日志页面链接 -->
             <div class="col-lg-3">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h5><i class="fas fa-terminal"></i> 实时日志</h5>
-                    <a href="/logs" class="btn btn-sm btn-primary">
-                        <i class="fas fa-external-link-alt"></i> 打开日志页面
-                    </a>
-                </div>
-                <div class="log-container" id="logs">
-                    <div class="text-center text-muted">
-                        <i class="fas fa-info-circle"></i><br>
-                        点击任务查看日志<br>
-                        或打开专门的日志页面
+                <div class="card">
+                    <div class="card-body text-center">
+                        <h5><i class="fas fa-terminal"></i> 实时日志</h5>
+                        <p class="text-muted">点击任务查看日志或打开专门的日志页面</p>
+                        <a href="/logs" class="btn btn-primary">
+                            <i class="fas fa-external-link-alt"></i> 打开日志页面
+                        </a>
                     </div>
-                </div>
-                <div class="mt-2">
-                    <button class="btn btn-sm btn-secondary" onclick="clearLogs()">
-                        <i class="fas fa-trash"></i> 清空日志
-                    </button>
-                    <button class="btn btn-sm btn-info" onclick="downloadLogs()">
-                        <i class="fas fa-download"></i> 下载日志
-                    </button>
                 </div>
             </div>
         </div>
@@ -613,8 +601,6 @@
             sent: [],
             recv: []
         };
-        let currentLogEventSource = null;
-        let currentViewingTaskId = null;
 
         // 初始化
         document.addEventListener('DOMContentLoaded', function() {
@@ -645,42 +631,6 @@
             });
         });
 
-        // 初始化特定任务的SSE连接
-        function initTaskSSE(taskId) {
-            // 关闭之前的连接
-            if (currentLogEventSource) {
-                currentLogEventSource.close();
-            }
-            
-            currentViewingTaskId = taskId;
-            currentLogEventSource = new EventSource(`/api/logs/stream/${taskId}`);
-            
-            currentLogEventSource.onmessage = function(event) {
-                try {
-                    const data = JSON.parse(event.data);
-                    if (data && data.log && data.task_id) {
-                        addLog(data.task_id, data.log);
-                    }
-                } catch (e) {
-                    console.error('SSE数据解析失败:', e);
-                }
-            };
-            
-            currentLogEventSource.onerror = function(event) {
-                console.error('SSE连接错误:', event);
-                // 3秒后重连
-                setTimeout(() => initTaskSSE(taskId), 3000);
-            };
-        }
-        
-        // 停止当前SSE连接
-        function stopCurrentSSE() {
-            if (currentLogEventSource) {
-                currentLogEventSource.close();
-                currentLogEventSource = null;
-            }
-            currentViewingTaskId = null;
-        }
 
         // 更新时间
         function updateTime() {
@@ -978,37 +928,9 @@
             });
         }
 
-        // 查看任务日志
+        // 查看任务日志 - 跳转到日志页面
         function viewTaskLogs(taskId) {
-            // 清空日志容器
-            const logContainer = document.getElementById('logs');
-            logContainer.innerHTML = '';
-            
-            // 显示当前查看的任务
-            const task = tasks.find(t => t.id === taskId);
-            const indicator = document.getElementById('current-task-indicator');
-            
-            if (task) {
-                indicator.textContent = `查看: ${taskId}`;
-                indicator.style.display = 'inline-block';
-                addLogOld(`正在查看任务: ${taskId} - ${task.config.mode} -> ${task.config.url}`);
-            }
-            
-            // 先加载历史日志
-            fetch(`/api/tasks/${taskId}/logs`)
-                .then(response => response.json())
-                .then(logs => {
-                    logs.forEach(log => {
-                        addLog(taskId, log);
-                    });
-                    
-                    // 启动实时日志流
-                    initTaskSSE(taskId);
-                })
-                .catch(error => {
-                    console.error('获取日志失败:', error);
-                    addLogOld('获取任务日志失败');
-                });
+            window.open(`/logs?task=${taskId}`, '_blank');
         }
 
         // 编辑任务
@@ -1089,84 +1011,10 @@
             });
         }
 
-        // 添加日志 - 改进版本
-        function addLog(taskId, logData) {
-            const logContainer = document.getElementById('logs');
-            const logEntry = document.createElement('div');
-            
-            // 设置基本样式
-            logEntry.style.marginBottom = '3px';
-            logEntry.style.padding = '4px 8px';
-            logEntry.style.borderRadius = '4px';
-            logEntry.style.fontSize = '12px';
-            logEntry.style.fontFamily = 'JetBrains Mono, Fira Code, monospace';
-            logEntry.style.wordBreak = 'break-all';
-            
-            // 根据日志级别设置颜色
-            const level = logData.level || 'INFO';
-            const message = logData.message || '';
-            
-            switch(level) {
-                case 'ERROR':
-                    logEntry.style.backgroundColor = 'rgba(255, 107, 107, 0.1)';
-                    logEntry.style.color = '#ff6b6b';
-                    logEntry.style.borderLeft = '3px solid #ff6b6b';
-                    break;
-                case 'WARNING':
-                    logEntry.style.backgroundColor = 'rgba(255, 193, 7, 0.1)';
-                    logEntry.style.color = '#ffc107';
-                    logEntry.style.borderLeft = '3px solid #ffc107';
-                    break;
-                case 'INFO':
-                    logEntry.style.backgroundColor = 'rgba(23, 162, 184, 0.1)';
-                    logEntry.style.color = '#17a2b8';
-                    logEntry.style.borderLeft = '3px solid #17a2b8';
-                    break;
-                case 'DEBUG':
-                    logEntry.style.backgroundColor = 'rgba(108, 117, 125, 0.1)';
-                    logEntry.style.color = '#6c757d';
-                    logEntry.style.borderLeft = '3px solid #6c757d';
-                    break;
-                default:
-                    logEntry.style.backgroundColor = 'rgba(0, 255, 65, 0.1)';
-                    logEntry.style.color = '#00ff41';
-                    logEntry.style.borderLeft = '3px solid #00ff41';
-            }
-            
-            // 创建日志内容
-            const timestamp = logData.timestamp || new Date().toLocaleTimeString();
-            const levelBadge = `<span style="background: rgba(255,255,255,0.2); padding: 1px 4px; border-radius: 2px; font-size: 10px; margin-right: 5px;">${level}</span>`;
-            const taskBadge = `<span style="background: rgba(99, 102, 241, 0.3); padding: 1px 4px; border-radius: 2px; font-size: 10px; margin-right: 5px;">${taskId}</span>`;
-            
-            logEntry.innerHTML = `${levelBadge}${taskBadge}[${timestamp}] ${message}`;
-            
-            logContainer.appendChild(logEntry);
-            
-            // 自动滚动到底部
-            logContainer.scrollTop = logContainer.scrollHeight;
-
-            // 限制日志数量
-            const logs = logContainer.children;
-            if (logs.length > 300) {
-                logContainer.removeChild(logs[0]);
-            }
-        }
-        
-        // 兼容旧版本的addLog函数
-        function addLogOld(message) {
-            addLog('system', {
-                timestamp: new Date().toLocaleTimeString(),
-                level: 'INFO',
-                message: message
-            });
-        }
-
-        // 清空日志
+        // 清空日志（简化版）
         function clearLogs() {
-            stopCurrentSSE();
-            document.getElementById('logs').innerHTML = '<div>日志已清空</div>';
-            document.getElementById('current-task-indicator').style.display = 'none';
-            currentViewingTaskId = null;
+            // 这个函数保留用于兼容性，但实际功能已移到日志页面
+            console.log('日志功能已移至专门页面');
         }
 
         // 下载日志
