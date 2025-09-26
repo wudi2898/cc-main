@@ -48,13 +48,24 @@ fi
 
 echo -e "${BLUE}项目目录: $PROJECT_DIR${NC}"
 
-# 克隆项目
-echo -e "${BLUE}📥 克隆项目仓库...${NC}"
+# 删除旧安装
+echo -e "${BLUE}🗑️ 清理旧安装...${NC}"
 if [ -d "$PROJECT_DIR" ]; then
-    echo -e "${BLUE}项目目录已存在，备份为 ${PROJECT_DIR}.backup${NC}"
-    mv "$PROJECT_DIR" "${PROJECT_DIR}.backup"
+    echo -e "${BLUE}删除旧项目目录: $PROJECT_DIR${NC}"
+    rm -rf "$PROJECT_DIR"
 fi
 
+# 停止旧服务
+if [ "$OS" = "linux" ]; then
+    echo -e "${BLUE}停止旧服务...${NC}"
+    systemctl stop cc-main 2>/dev/null || true
+    systemctl disable cc-main 2>/dev/null || true
+    rm -f /etc/systemd/system/cc-main.service 2>/dev/null || true
+    systemctl daemon-reload 2>/dev/null || true
+fi
+
+# 克隆项目
+echo -e "${BLUE}📥 克隆项目仓库...${NC}"
 git clone https://github.com/wudi2898/cc-main.git "$PROJECT_DIR" || {
     echo -e "${RED}克隆项目失败，尝试使用curl下载...${NC}"
     # 如果git失败，回退到curl方式
