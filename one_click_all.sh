@@ -432,17 +432,18 @@ EOF
 start_service() {
     log_info "启动服务..."
     
-    # 启动CC服务
-    cc-start
+    # 直接使用systemctl启动服务
+    systemctl start cc-main
     
     # 等待服务启动
     sleep 5
     
     # 检查服务状态
-    if cc-status | grep -q "active (running)"; then
+    if systemctl is-active --quiet cc-main; then
         log_success "服务启动成功"
+        log_info "Web控制面板地址: http://$(hostname -I | awk '{print $1}'):5000"
     else
-        log_warning "服务启动可能有问题，请检查日志: cc-logs"
+        log_warning "服务启动可能有问题，请检查日志: journalctl -u cc-main -f"
     fi
 }
 
@@ -470,15 +471,15 @@ show_result() {
     echo -e "  ${GREEN}cc-monitor${NC} - 查看系统性能"
     echo
     echo -e "${CYAN}🔧 管理命令:${NC}"
-    echo -e "  ${GREEN}cc-start${NC}    - 启动服务"
-    echo -e "  ${GREEN}cc-stop${NC}     - 停止服务"
-    echo -e "  ${GREEN}cc-restart${NC}  - 重启服务"
-    echo -e "  ${GREEN}cc-status${NC}   - 查看状态"
-    echo -e "  ${GREEN}cc-logs${NC}     - 查看日志"
+    echo -e "  ${GREEN}systemctl start cc-main${NC}    - 启动服务"
+    echo -e "  ${GREEN}systemctl stop cc-main${NC}     - 停止服务"
+    echo -e "  ${GREEN}systemctl restart cc-main${NC}  - 重启服务"
+    echo -e "  ${GREEN}systemctl status cc-main${NC}   - 查看状态"
+    echo -e "  ${GREEN}journalctl -u cc-main -f${NC}   - 查看日志"
     echo
     echo -e "${CYAN}⚙️  配置代理:${NC}"
     echo -e "  ${YELLOW}编辑代理:${NC} nano /opt/cc-main/config/socks5.txt"
-    echo -e "  ${YELLOW}重启服务:${NC} cc-restart"
+    echo -e "  ${YELLOW}重启服务:${NC} systemctl restart cc-main"
     echo
     echo -e "${RED}⚠️  重要提醒:${NC}"
     echo -e "  • 请编辑代理配置文件添加真实代理"
