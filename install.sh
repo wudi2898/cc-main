@@ -116,7 +116,7 @@ if [ "$GO_VERSION_NUM" -lt 18 ]; then
     echo -e "${RED}❌ Go版本过低，需要1.18+，当前版本: $(go version)${NC}"
     exit 1
 fi
-echo -e "${GREEN}✅ Go版本检查通过${NC}"
+echo -e "${GREEN}✅ Go版本检查通过 (1.18.1 兼容)${NC}"
 
 # 安装依赖
 echo -e "${CYAN}📦 安装依赖...${NC}"
