@@ -112,11 +112,78 @@ export PATH=$PATH:$GOPATH/bin
 
 # 检查Go版本
 GO_VERSION_NUM=$(go version | awk '{print $3}' | sed 's/go//' | cut -d. -f2)
-if [ "$GO_VERSION_NUM" -lt 18 ]; then
-    echo -e "${RED}❌ Go版本过低，需要1.18+，当前版本: $(go version)${NC}"
-    exit 1
+if [ "$GO_VERSION_NUM" -lt 21 ]; then
+    echo -e "${YELLOW}⚠️  Go版本过低，需要1.21+，当前版本: $(go version)${NC}"
+    echo -e "${CYAN}🔄 开始自动升级Go版本...${NC}"
+    
+    # 获取最新Go版本
+    LATEST_GO_VERSION=$(curl -s https://go.dev/VERSION?m=text | head -1)
+    if [ -z "$LATEST_GO_VERSION" ]; then
+        LATEST_GO_VERSION="go1.21.5"
+    fi
+    
+    echo -e "${BLUE}📥 下载Go版本: $LATEST_GO_VERSION${NC}"
+    
+    if [[ "$OS" == "Linux" ]]; then
+        # Linux
+        GO_ARCH="amd64"
+        if [[ "$ARCH" == "aarch64" || "$ARCH" == "arm64" ]]; then
+            GO_ARCH="arm64"
+        fi
+        
+        cd /tmp
+        wget -q https://go.dev/dl/${LATEST_GO_VERSION}.linux-${GO_ARCH}.tar.gz
+        if [ $? -ne 0 ]; then
+            echo -e "${RED}❌ Go下载失败${NC}"
+            exit 1
+        fi
+        
+        echo -e "${BLUE}📦 安装Go...${NC}"
+        sudo rm -rf /usr/local/go
+        sudo tar -C /usr/local -xzf ${LATEST_GO_VERSION}.linux-${GO_ARCH}.tar.gz
+        rm -f ${LATEST_GO_VERSION}.linux-${GO_ARCH}.tar.gz
+        
+        # 更新PATH
+        export PATH=/usr/local/go/bin:$PATH
+        echo 'export PATH=/usr/local/go/bin:$PATH' >> ~/.bashrc
+        echo 'export PATH=/usr/local/go/bin:$PATH' >> ~/.profile
+        
+    elif [[ "$OS" == "Darwin" ]]; then
+        # macOS
+        GO_ARCH="amd64"
+        if [[ "$ARCH" == "arm64" ]]; then
+            GO_ARCH="arm64"
+        fi
+        
+        cd /tmp
+        curl -s -O https://go.dev/dl/${LATEST_GO_VERSION}.darwin-${GO_ARCH}.tar.gz
+        if [ $? -ne 0 ]; then
+            echo -e "${RED}❌ Go下载失败${NC}"
+            exit 1
+        fi
+        
+        echo -e "${BLUE}📦 安装Go...${NC}"
+        sudo rm -rf /usr/local/go
+        sudo tar -C /usr/local -xzf ${LATEST_GO_VERSION}.darwin-${GO_ARCH}.tar.gz
+        rm -f ${LATEST_GO_VERSION}.darwin-${GO_ARCH}.tar.gz
+        
+        # 更新PATH
+        export PATH=/usr/local/go/bin:$PATH
+        echo 'export PATH=/usr/local/go/bin:$PATH' >> ~/.zshrc
+        echo 'export PATH=/usr/local/go/bin:$PATH' >> ~/.bash_profile
+    fi
+    
+    # 验证安装
+    if command -v go &> /dev/null; then
+        NEW_GO_VERSION=$(go version | awk '{print $3}' | sed 's/go//' | cut -d. -f2)
+        echo -e "${GREEN}✅ Go升级成功，新版本: $(go version)${NC}"
+    else
+        echo -e "${RED}❌ Go升级失败${NC}"
+        exit 1
+    fi
+else
+    echo -e "${GREEN}✅ Go版本检查通过: $(go version)${NC}"
 fi
-echo -e "${GREEN}✅ Go版本检查通过 (1.18.1 兼容)${NC}"
 
 # 安装依赖
 echo -e "${CYAN}📦 安装依赖...${NC}"
