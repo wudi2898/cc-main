@@ -270,16 +270,31 @@
                     }
                 } catch (e) {
                     console.error('SSE数据解析失败:', e);
+                    addLog('system', {
+                        timestamp: new Date().toLocaleTimeString(),
+                        level: 'ERROR',
+                        message: '日志数据解析失败: ' + e.message
+                    });
                 }
             };
 
             currentEventSource.onopen = function() {
                 updateStatus('connected', '已连接');
+                addLog('system', {
+                    timestamp: new Date().toLocaleTimeString(),
+                    level: 'INFO',
+                    message: 'SSE连接已建立'
+                });
             };
 
             currentEventSource.onerror = function(event) {
                 console.error('SSE连接错误:', event);
                 updateStatus('error', '连接错误');
+                addLog('system', {
+                    timestamp: new Date().toLocaleTimeString(),
+                    level: 'ERROR',
+                    message: 'SSE连接错误，3秒后重连'
+                });
                 // 3秒后重连
                 setTimeout(() => {
                     if (currentTaskId) {

@@ -820,7 +820,7 @@
                 })
                 .catch(error => {
                     console.error('加载任务失败:', error);
-                    addLogOld('加载任务列表失败');
+                    alert('加载任务列表失败');
                 });
         }
 
@@ -874,6 +874,9 @@
                                         <i class="fas fa-edit"></i>
                                     </button>` : ''
                                 }
+                                <button class="btn btn-danger" onclick="deleteTask('${task.id}')" title="删除任务">
+                                    <i class="fas fa-trash"></i>
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -938,7 +941,7 @@
                 if (data.error) {
                     alert('创建任务失败: ' + data.error);
                 } else {
-                    addLogOld('任务创建成功: ' + data.task_id);
+                    console.log('任务创建成功: ' + data.task_id);
                     loadTasks();
                     bootstrap.Modal.getInstance(document.getElementById('createTaskModal')).hide();
                     form.reset();
@@ -960,7 +963,7 @@
                 if (data.error) {
                     alert('启动任务失败: ' + data.error);
                 } else {
-                    addLogOld('任务启动成功: ' + taskId);
+                    console.log('任务启动成功: ' + taskId);
                     loadTasks();
                 }
             })
@@ -980,7 +983,7 @@
                 if (data.error) {
                     alert('停止任务失败: ' + data.error);
                 } else {
-                    addLogOld('任务停止成功: ' + taskId);
+                    console.log('任务停止成功: ' + taskId);
                     loadTasks();
                 }
             })
@@ -1062,7 +1065,7 @@
                 if (data.error) {
                     alert('更新任务失败: ' + data.error);
                 } else {
-                    addLogOld('任务更新成功: ' + taskId);
+                    console.log('任务更新成功: ' + taskId);
                     loadTasks();
                     bootstrap.Modal.getInstance(document.getElementById('editTaskModal')).hide();
                 }
@@ -1070,6 +1073,30 @@
             .catch(error => {
                 console.error('更新任务失败:', error);
                 alert('更新任务失败');
+            });
+        }
+
+        // 删除任务
+        function deleteTask(taskId) {
+            if (!confirm(`确定要删除任务 ${taskId} 吗？此操作不可撤销！`)) {
+                return;
+            }
+
+            fetch(`/api/tasks/${taskId}`, {
+                method: 'DELETE'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert('删除任务失败: ' + data.error);
+                } else {
+                    console.log('任务删除成功: ' + taskId);
+                    loadTasks();
+                }
+            })
+            .catch(error => {
+                console.error('删除任务失败:', error);
+                alert('删除任务失败');
             });
         }
 

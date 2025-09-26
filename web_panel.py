@@ -507,6 +507,27 @@ def update_task(task_id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/tasks/<task_id>', methods=['DELETE'])
+def delete_task(task_id):
+    """删除任务"""
+    try:
+        if task_id not in task_manager.tasks:
+            return jsonify({'error': '任务不存在'}), 404
+            
+        task = task_manager.tasks[task_id]
+        
+        # 如果任务正在运行，先停止
+        if task['status'] == 'running':
+            task_manager.stop_task(task_id)
+        
+        # 删除任务
+        del task_manager.tasks[task_id]
+        
+        return jsonify({'message': '任务删除成功'})
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/tasks/<task_id>/logs')
 def get_task_logs(task_id):
     """获取任务日志"""

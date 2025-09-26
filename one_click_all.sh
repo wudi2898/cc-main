@@ -193,7 +193,15 @@ StandardError=journal
 WantedBy=multi-user.target
 EOF
 
+    # 清理旧进程
+    echo -e "${BLUE}🧹 清理旧进程...${NC}"
+    pkill -f "web_panel.py" 2>/dev/null || true
+    pkill -f "main.py" 2>/dev/null || true
+    pkill -f "cc-main" 2>/dev/null || true
+    sleep 2
+
     # 启动服务
+    echo -e "${BLUE}🚀 启动服务...${NC}"
     systemctl daemon-reload
     systemctl enable cc-main
     systemctl start cc-main
