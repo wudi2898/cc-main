@@ -125,6 +125,9 @@ python3 main.py check https://httpbin.org/ip 1 1
 
 # 检查代理文件
 cat /opt/cc-main/config/socks5.txt
+
+# 验证依赖
+python3 -c "import flask, flask_socketio, psutil, socks; print('依赖正常')"
 ```
 
 ### 端口被占用

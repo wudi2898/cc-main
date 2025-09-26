@@ -76,7 +76,6 @@ cc-main/
 ├── install.sh              # 一键安装脚本
 ├── start_panel.sh          # 启动管理脚本
 ├── uninstall.sh            # 卸载脚本
-├── test_install.sh         # 安装测试脚本
 ├── main.py                 # 主程序
 ├── web_panel.py            # Web控制面板
 ├── requirements.txt        # Python依赖
@@ -122,7 +121,7 @@ cc-main/
 sudo ./install.sh
 
 # 检查依赖
-./test_install.sh
+python3 -c "import flask, flask_socketio, psutil, socks; print('依赖正常')"
 ```
 
 ### 服务启动失败

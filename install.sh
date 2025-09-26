@@ -161,6 +161,7 @@ install_python_deps() {
         log_success "Python依赖安装成功"
     } || {
         log_error "Python依赖安装失败"
+        log_info "手动验证: python3 -c \"import flask, flask_socketio, psutil, socks; print('依赖正常')\""
         exit 1
     }
 }

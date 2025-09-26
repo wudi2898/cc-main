@@ -74,12 +74,6 @@ sudo ./install.sh
 
 ## 🚀 快速开始
 
-### 快速安装（推荐）
-```bash
-# 仅安装核心依赖，快速启动
-./quick_install.sh
-```
-
 ### 手动安装
 ```bash
 # 安装Python依赖
@@ -387,6 +381,12 @@ pip install -r requirements-minimal.txt
 
 ### 依赖详情
 详细的依赖说明请查看 [DEPENDENCIES.md](DEPENDENCIES.md)
+
+### 验证依赖
+```bash
+# 检查依赖安装状态
+python3 -c "import flask, flask_socketio, psutil, socks; print('所有依赖已安装')"
+```
 
 ## 📊 监控和统计
 
