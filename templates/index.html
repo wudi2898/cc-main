@@ -570,7 +570,7 @@
         socket.on('task_log', function(data) {
             console.log('收到任务日志:', data);
             if (data && data.log && data.log.message) {
-                addLog(`[${data.task_id}] ${data.log.message}`);
+                addLog(data.task_id, data.log);
             }
         });
 
@@ -641,7 +641,7 @@
                 })
                 .catch(error => {
                     console.error('加载任务失败:', error);
-                    addLog('加载任务列表失败');
+                    addLogOld('加载任务列表失败');
                 });
         }
 
@@ -751,7 +751,7 @@
                 if (data.error) {
                     alert('创建任务失败: ' + data.error);
                 } else {
-                    addLog('任务创建成功: ' + data.task_id);
+                    addLogOld('任务创建成功: ' + data.task_id);
                     loadTasks();
                     bootstrap.Modal.getInstance(document.getElementById('createTaskModal')).hide();
                     form.reset();
@@ -773,7 +773,7 @@
                 if (data.error) {
                     alert('启动任务失败: ' + data.error);
                 } else {
-                    addLog('任务启动成功: ' + taskId);
+                    addLogOld('任务启动成功: ' + taskId);
                     loadTasks();
                 }
             })
@@ -793,7 +793,7 @@
                 if (data.error) {
                     alert('停止任务失败: ' + data.error);
                 } else {
-                    addLog('任务停止成功: ' + taskId);
+                    addLogOld('任务停止成功: ' + taskId);
                     loadTasks();
                 }
             })
@@ -811,43 +811,85 @@
                     const logContainer = document.getElementById('logs');
                     logContainer.innerHTML = '';
                     logs.forEach(log => {
-                        addLog(`[${log.timestamp}] ${log.message}`);
+                        addLog('task', log);
                     });
                 })
                 .catch(error => {
                     console.error('获取日志失败:', error);
-                    addLog('获取任务日志失败');
+                    addLogOld('获取任务日志失败');
                 });
         }
 
-        // 添加日志
-        function addLog(message) {
+        // 添加日志 - 改进版本
+        function addLog(taskId, logData) {
             const logContainer = document.getElementById('logs');
             const logEntry = document.createElement('div');
-            logEntry.style.marginBottom = '2px';
-            logEntry.style.padding = '2px 0';
-            logEntry.style.borderBottom = '1px solid rgba(0, 255, 65, 0.1)';
             
-            // 根据消息类型设置不同颜色
-            if (message.includes('错误') || message.includes('失败')) {
-                logEntry.style.color = '#ff6b6b';
-            } else if (message.includes('成功') || message.includes('完成')) {
-                logEntry.style.color = '#51cf66';
-            } else if (message.includes('启动') || message.includes('开始')) {
-                logEntry.style.color = '#74c0fc';
-            } else {
-                logEntry.style.color = '#00ff41';
+            // 设置基本样式
+            logEntry.style.marginBottom = '3px';
+            logEntry.style.padding = '4px 8px';
+            logEntry.style.borderRadius = '4px';
+            logEntry.style.fontSize = '12px';
+            logEntry.style.fontFamily = 'JetBrains Mono, Fira Code, monospace';
+            logEntry.style.wordBreak = 'break-all';
+            
+            // 根据日志级别设置颜色
+            const level = logData.level || 'INFO';
+            const message = logData.message || '';
+            
+            switch(level) {
+                case 'ERROR':
+                    logEntry.style.backgroundColor = 'rgba(255, 107, 107, 0.1)';
+                    logEntry.style.color = '#ff6b6b';
+                    logEntry.style.borderLeft = '3px solid #ff6b6b';
+                    break;
+                case 'WARNING':
+                    logEntry.style.backgroundColor = 'rgba(255, 193, 7, 0.1)';
+                    logEntry.style.color = '#ffc107';
+                    logEntry.style.borderLeft = '3px solid #ffc107';
+                    break;
+                case 'INFO':
+                    logEntry.style.backgroundColor = 'rgba(23, 162, 184, 0.1)';
+                    logEntry.style.color = '#17a2b8';
+                    logEntry.style.borderLeft = '3px solid #17a2b8';
+                    break;
+                case 'DEBUG':
+                    logEntry.style.backgroundColor = 'rgba(108, 117, 125, 0.1)';
+                    logEntry.style.color = '#6c757d';
+                    logEntry.style.borderLeft = '3px solid #6c757d';
+                    break;
+                default:
+                    logEntry.style.backgroundColor = 'rgba(0, 255, 65, 0.1)';
+                    logEntry.style.color = '#00ff41';
+                    logEntry.style.borderLeft = '3px solid #00ff41';
             }
             
-            logEntry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            // 创建日志内容
+            const timestamp = logData.timestamp || new Date().toLocaleTimeString();
+            const levelBadge = `<span style="background: rgba(255,255,255,0.2); padding: 1px 4px; border-radius: 2px; font-size: 10px; margin-right: 5px;">${level}</span>`;
+            const taskBadge = `<span style="background: rgba(99, 102, 241, 0.3); padding: 1px 4px; border-radius: 2px; font-size: 10px; margin-right: 5px;">${taskId}</span>`;
+            
+            logEntry.innerHTML = `${levelBadge}${taskBadge}[${timestamp}] ${message}`;
+            
             logContainer.appendChild(logEntry);
+            
+            // 自动滚动到底部
             logContainer.scrollTop = logContainer.scrollHeight;
 
             // 限制日志数量
             const logs = logContainer.children;
-            if (logs.length > 200) {
+            if (logs.length > 300) {
                 logContainer.removeChild(logs[0]);
             }
+        }
+        
+        // 兼容旧版本的addLog函数
+        function addLogOld(message) {
+            addLog('system', {
+                timestamp: new Date().toLocaleTimeString(),
+                level: 'INFO',
+                message: message
+            });
         }
 
         // 清空日志

@@ -187,41 +187,56 @@ class TaskManager:
             return False
             
     def _read_task_logs(self, task_id, process):
-        """读取任务日志"""
+        """读取任务日志 - 改进的实时日志读取"""
         task = self.tasks[task_id]
         
         try:
-            # 使用非阻塞方式读取日志
             import select
             import sys
+            import fcntl
+            
+            # 设置非阻塞模式
+            if sys.platform != 'win32':
+                fd = process.stdout.fileno()
+                fl = fcntl.fcntl(fd, fcntl.F_GETFL)
+                fcntl.fcntl(fd, fcntl.F_SETFL, fl | os.O_NONBLOCK)
             
             while True:
                 # 检查进程是否还在运行
                 if process.poll() is not None:
                     break
                     
-                # 非阻塞读取
-                if sys.platform != 'win32':
-                    # Unix系统使用select
-                    ready, _, _ = select.select([process.stdout], [], [], 0.1)
-                    if ready:
+                try:
+                    # 非阻塞读取
+                    if sys.platform != 'win32':
+                        # Unix系统使用select
+                        ready, _, _ = select.select([process.stdout], [], [], 0.05)
+                        if ready:
+                            line = process.stdout.readline()
+                            if line:
+                                self._add_log_entry(task_id, line.strip())
+                    else:
+                        # Windows系统
                         line = process.stdout.readline()
                         if line:
                             self._add_log_entry(task_id, line.strip())
-                else:
-                    # Windows系统
-                    line = process.stdout.readline()
-                    if line:
-                        self._add_log_entry(task_id, line.strip())
-                    else:
-                        time.sleep(0.1)
+                        else:
+                            time.sleep(0.05)
+                            
+                except (OSError, IOError):
+                    # 没有数据可读，继续循环
+                    time.sleep(0.05)
+                    continue
                         
             # 读取剩余输出
-            remaining_output = process.stdout.read()
-            if remaining_output:
-                for line in remaining_output.splitlines():
-                    if line.strip():
-                        self._add_log_entry(task_id, line.strip())
+            try:
+                remaining_output = process.stdout.read()
+                if remaining_output:
+                    for line in remaining_output.splitlines():
+                        if line.strip():
+                            self._add_log_entry(task_id, line.strip())
+            except:
+                pass
             
             # 等待进程结束
             return_code = process.wait()
@@ -255,8 +270,25 @@ class TaskManager:
         if not task:
             return
             
+        # 清理和格式化消息
+        message = message.strip()
+        if not message:
+            return
+            
+        # 解析日志级别和内容
+        log_level = "INFO"
+        if "ERROR" in message or "错误" in message or "失败" in message:
+            log_level = "ERROR"
+        elif "WARNING" in message or "警告" in message:
+            log_level = "WARNING"
+        elif "INFO" in message or "信息" in message:
+            log_level = "INFO"
+        elif "DEBUG" in message or "调试" in message:
+            log_level = "DEBUG"
+            
         log_entry = {
             'timestamp': datetime.now().strftime('%H:%M:%S'),
+            'level': log_level,
             'message': message
         }
         
@@ -272,6 +304,7 @@ class TaskManager:
                 'task_id': task_id,
                 'log': log_entry
             })
+            print(f"推送日志: {task_id} - {message}")  # 调试信息
         except Exception as e:
             print(f"WebSocket推送失败: {e}")
             
