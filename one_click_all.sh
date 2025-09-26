@@ -69,19 +69,19 @@ curl -fsSL https://raw.githubusercontent.com/wudi2898/cc-main/main/requirements.
 
 # 创建配置目录和文件
 mkdir -p config
-curl -fsSL https://raw.githubusercontent.com/wudi2898/cc-main/main/accept_headers.txt -o config/accept_headers.txt || {
+curl -fsSL https://raw.githubusercontent.com/wudi2898/cc-main/main/config/accept_headers.txt -o config/accept_headers.txt || {
     echo -e "${RED}下载accept_headers.txt失败${NC}"
     exit 1
 }
-curl -fsSL https://raw.githubusercontent.com/wudi2898/cc-main/main/referers.txt -o config/referers.txt || {
+curl -fsSL https://raw.githubusercontent.com/wudi2898/cc-main/main/config/referers.txt -o config/referers.txt || {
     echo -e "${RED}下载referers.txt失败${NC}"
     exit 1
 }
-curl -fsSL https://raw.githubusercontent.com/wudi2898/cc-main/main/socks5.txt -o config/socks5.txt || {
+curl -fsSL https://raw.githubusercontent.com/wudi2898/cc-main/main/config/socks5.txt -o config/socks5.txt || {
     echo -e "${RED}下载socks5.txt失败${NC}"
     exit 1
 }
-curl -fsSL https://raw.githubusercontent.com/wudi2898/cc-main/main/http_proxies.txt -o config/http_proxies.txt || {
+curl -fsSL https://raw.githubusercontent.com/wudi2898/cc-main/main/config/http_proxies.txt -o config/http_proxies.txt || {
     echo -e "${RED}下载http_proxies.txt失败${NC}"
     exit 1
 }
