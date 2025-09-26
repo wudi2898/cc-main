@@ -551,6 +551,7 @@ func loadTasks() {
 	// 检查文件是否存在
 	if _, err := os.Stat(tasksFile); os.IsNotExist(err) {
 		// 文件不存在，创建空的任务列表
+		log.Printf("📝 任务文件不存在，创建空列表")
 		saveTasks()
 		return
 	}
@@ -558,14 +559,14 @@ func loadTasks() {
 	// 读取文件
 	data, err := ioutil.ReadFile(tasksFile)
 	if err != nil {
-		log.Printf("读取任务文件失败: %v", err)
+		log.Printf("❌ 读取任务文件失败: %v", err)
 		return
 	}
 	
 	// 解析JSON
 	var taskList []*Task
 	if err := json.Unmarshal(data, &taskList); err != nil {
-		log.Printf("解析任务文件失败: %v", err)
+		log.Printf("❌ 解析任务文件失败: %v", err)
 		return
 	}
 	

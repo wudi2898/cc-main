@@ -48,8 +48,8 @@ while [[ $# -gt 0 ]]; do
 done
 
 echo -e "${BLUE}╔══════════════════════════════════════════════════════════════╗${NC}"
-echo -e "${BLUE}║                    ${PROJECT_NAME} v${VERSION}                    ║${NC}"
-echo -e "${BLUE}║                        一键安装运行                        ║${NC}"
+echo -e "${BLUE}║                    ${PROJECT_NAME} v${VERSION}                     ║${NC}"
+echo -e "${BLUE}║                        一键安装运行                          ║${NC}"
 echo -e "${BLUE}╚══════════════════════════════════════════════════════════════╝${NC}"
 echo ""
 
@@ -74,6 +74,13 @@ echo -e "${CYAN}🗑️  清理之前的项目...${NC}"
 rm -rf /tmp/cc-main 2>/dev/null || true
 echo -e "${GREEN}✅ 清理完成${NC}"
 
+# 检查任务文件是否存在
+if [ ! -f "/cc-tasks.json" ]; then
+    echo -e "${YELLOW}📝 初始化任务文件...${NC}"
+    echo "[]" > /cc-tasks.json
+    chmod 666 /cc-tasks.json
+fi
+
 # 1. 首先克隆项目代码
 echo -e "${CYAN}📥 获取项目代码...${NC}"
 
@@ -90,6 +97,7 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 echo -e "${GREEN}✅ 项目克隆成功${NC}"
+
 
 # 2. 检查并安装Go
 echo -e "${CYAN}📦 检查Go环境...${NC}"
