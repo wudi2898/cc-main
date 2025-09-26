@@ -464,6 +464,44 @@ def stop_task(task_id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/tasks/<task_id>', methods=['PUT'])
+def update_task(task_id):
+    """更新任务"""
+    try:
+        if task_id not in task_manager.tasks:
+            return jsonify({'error': '任务不存在'}), 404
+            
+        config = request.json
+        
+        # 验证必要参数
+        required_fields = ['mode', 'url', 'threads', 'rps']
+        for field in required_fields:
+            if field not in config:
+                return jsonify({'error': f'缺少必要参数: {field}'}), 400
+        
+        task = task_manager.tasks[task_id]
+        
+        # 如果任务正在运行，先停止
+        if task['status'] == 'running':
+            task_manager.stop_task(task_id)
+        
+        # 更新任务配置
+        task['config'].update(config)
+        task['auto_restart'] = config.get('auto_restart', False)
+        task['restart_interval'] = config.get('restart_interval', 60)
+        
+        # 添加日志
+        task['logs'].append({
+            'timestamp': datetime.now().strftime('%H:%M:%S'),
+            'level': 'INFO',
+            'message': f'任务配置已更新: {config["mode"]} -> {config["url"]}'
+        })
+        
+        return jsonify({'message': '任务更新成功'})
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/tasks/<task_id>/logs')
 def get_task_logs(task_id):
     """获取任务日志"""
@@ -477,6 +515,46 @@ def get_task_logs(task_id):
 def get_system_stats_api():
     """获取系统状态"""
     return jsonify(system_stats)
+
+@app.route('/api/logs/stream/<task_id>')
+def stream_task_logs(task_id):
+    """特定任务的SSE日志流"""
+    def generate_task_logs():
+        last_log_count = 0
+        while True:
+            if task_id in task_manager.tasks:
+                task = task_manager.tasks[task_id]
+                current_log_count = len(task['logs'])
+                
+                # 只发送新增的日志
+                if current_log_count > last_log_count:
+                    new_logs = task['logs'][last_log_count:]
+                    for log in new_logs:
+                        yield f"data: {json.dumps({
+                            'task_id': task_id,
+                            'log': log
+                        })}\n\n"
+                    last_log_count = current_log_count
+            else:
+                # 任务不存在，发送错误信息
+                yield f"data: {json.dumps({
+                    'task_id': task_id,
+                    'log': {
+                        'timestamp': datetime.now().strftime('%H:%M:%S'),
+                        'level': 'ERROR',
+                        'message': '任务不存在'
+                    }
+                })}\n\n"
+                break
+            
+            time.sleep(0.05)  # 50ms间隔，更实时
+    
+    return Response(generate_task_logs(), mimetype='text/event-stream', headers={
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': 'Cache-Control'
+    })
 
 @socketio.on('connect')
 def handle_connect():
