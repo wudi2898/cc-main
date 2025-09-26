@@ -658,6 +658,26 @@ class AttackManager:
                 'uptime': round(uptime, 2)
             }
     
+    def print_stats(self) -> None:
+        """打印统计信息"""
+        stats = self.get_stats()
+        print(f"\r📊 总请求: {stats['total_requests']} | "
+              f"成功: {stats['successful_requests']} | "
+              f"失败: {stats['failed_requests']} | "
+              f"当前RPS: {stats['current_rps']} | "
+              f"平均RPS: {stats['avg_rps']} | "
+              f"运行时间: {stats['uptime']}s", end="", flush=True)
+    
+    def _stats_worker(self) -> None:
+        """统计工作线程"""
+        while self.running:
+            try:
+                self.print_stats()
+                time.sleep(1)  # 每秒更新一次
+            except Exception as e:
+                self.logger.debug(f"统计线程错误: {e}")
+                time.sleep(1)
+    
     @contextmanager
     def create_socket_connection(self, target: str, port: int, protocol: str):
         """创建Socket连接的上下文管理器"""
@@ -776,6 +796,7 @@ class AttackManager:
                             
                             # 统计更新
                             self.proxy_manager.update_proxy_stats(proxy_str, 1)
+                            self.update_stats(success=True)
                             
                             # 超负荷模式无延迟
                             if not self.config.no_delay and not self.config.overload_mode:
@@ -822,7 +843,9 @@ class AttackManager:
                             else:
                                 # 直连模式统计
                                 self.proxy_manager.update_proxy_stats("direct", 1)
+                            self.update_stats(success=True)
                         else:
+                            self.update_stats(success=False)
                             break
                             
             except Exception as e:

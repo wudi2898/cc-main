@@ -290,11 +290,13 @@
 
                     switch(data.status) {
                         case 'running':
-                            message = `任务运行中 - 线程: ${data.config.threads}, RPS: ${data.config.rps}`;
+                            const stats = data.stats || {};
+                            message = `任务运行中 - 总请求: ${stats.total_requests || 0} | 成功: ${stats.successful_requests || 0} | 失败: ${stats.failed_requests || 0} | 当前RPS: ${stats.current_rps || 0} | 平均RPS: ${stats.avg_rps || 0}`;
                             level = 'INFO';
                             break;
                         case 'completed':
-                            message = '任务已完成';
+                            const finalStats = data.stats || {};
+                            message = `任务已完成 - 总请求: ${finalStats.total_requests || 0} | 成功: ${finalStats.successful_requests || 0} | 失败: ${finalStats.failed_requests || 0} | 平均RPS: ${finalStats.avg_rps || 0}`;
                             level = 'INFO';
                             break;
                         case 'stopped':

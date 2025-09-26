@@ -59,7 +59,15 @@ class TaskManager:
             'end_time': None,
             'duration': config.get('duration', 0),
             'auto_restart': config.get('auto_restart', False),
-            'restart_interval': config.get('restart_interval', 60)  # 重启间隔（秒）
+            'restart_interval': config.get('restart_interval', 60),  # 重启间隔（秒）
+            'stats': {
+                'total_requests': 0,
+                'successful_requests': 0,
+                'failed_requests': 0,
+                'current_rps': 0,
+                'avg_rps': 0,
+                'uptime': 0
+            }
         }
         
         self.tasks[task_id] = task
@@ -445,13 +453,24 @@ def get_task_status(task_id):
         
     task = task_manager.tasks[task_id]
     
+    # 获取任务统计信息
+    stats = task.get('stats', {
+        'total_requests': 0,
+        'successful_requests': 0,
+        'failed_requests': 0,
+        'current_rps': 0,
+        'avg_rps': 0,
+        'uptime': 0
+    })
+    
     status_info = {
         'task_id': task_id,
         'status': task['status'],
         'config': task['config'],
         'start_time': task.get('start_time'),
         'end_time': task.get('end_time'),
-        'pid': task.get('pid')
+        'pid': task.get('pid'),
+        'stats': stats
     }
     
     return jsonify(status_info)
