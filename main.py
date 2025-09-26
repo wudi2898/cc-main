@@ -596,6 +596,7 @@ class AttackManager:
         self.failed_requests = 0
         self.start_time = None
         self.last_stats_time = None
+        self.last_total = 0  # 添加这个字段
         self.current_rps = 0
         self.stats_lock = threading.Lock()
         
