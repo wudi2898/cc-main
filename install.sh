@@ -79,6 +79,13 @@ echo -e "${CYAN}📥 获取项目代码...${NC}"
 
 # 创建项目目录
 PROJECT_DIR="/tmp/cc-main"
+
+# 删除旧目录
+if [ -d "$PROJECT_DIR" ]; then
+    echo -e "${YELLOW}🗑️  删除旧目录: $PROJECT_DIR${NC}"
+    rm -rf "$PROJECT_DIR"
+fi
+
 mkdir -p "$PROJECT_DIR"
 cd "$PROJECT_DIR"
 
