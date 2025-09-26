@@ -60,6 +60,7 @@ class TaskManager:
             'duration': config.get('duration', 0),
             'auto_restart': config.get('auto_restart', False),
             'restart_interval': config.get('restart_interval', 60),  # 重启间隔（秒）
+            'logs': [],  # 添加日志字段
             'stats': {
                 'total_requests': 0,
                 'successful_requests': 0,
@@ -204,7 +205,7 @@ class TaskManager:
                 try:
                     line = process.stdout.readline()
                     if line:
-                        line = line.decode('utf-8').strip()
+                        line = line.strip()
                         
                         # 解析统计信息
                         if line.startswith('STATS_JSON:'):
@@ -215,12 +216,12 @@ class TaskManager:
                                 print(f"更新任务 {task_id} 统计: {stats}")
                             except json.JSONDecodeError as e:
                                 print(f"解析统计JSON失败: {e}")
-                        
-                        # 记录其他日志
-                        task['logs'].append({
-                            'timestamp': datetime.now().strftime('%H:%M:%S'),
-                            'message': line
-                        })
+                        else:
+                            # 记录其他日志
+                            task['logs'].append({
+                                'timestamp': datetime.now().strftime('%H:%M:%S'),
+                                'message': line
+                            })
                         
                 except Exception as e:
                     print(f"读取进程输出错误: {e}")
