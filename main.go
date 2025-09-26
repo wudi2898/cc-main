@@ -235,12 +235,31 @@ func performAttack(config *Config) bool {
 	// 发送请求
 	resp, err := client.Do(req)
 	if err != nil {
+		// 记录错误类型
+		if strings.Contains(err.Error(), "timeout") {
+			fmt.Printf("⏰ 请求超时: %v\n", err)
+		} else if strings.Contains(err.Error(), "connection refused") {
+			fmt.Printf("🚫 连接被拒绝: %v\n", err)
+		} else if strings.Contains(err.Error(), "no route to host") {
+			fmt.Printf("🛣️  无路由到主机: %v\n", err)
+		} else {
+			fmt.Printf("❌ 请求失败: %v\n", err)
+		}
 		return false
 	}
 	defer resp.Body.Close()
 	
 	// 读取响应（可选）
 	io.Copy(io.Discard, resp.Body)
+	
+	// 记录状态码
+	if resp.StatusCode >= 500 {
+		fmt.Printf("🔥 服务器错误: %d\n", resp.StatusCode)
+	} else if resp.StatusCode >= 400 {
+		fmt.Printf("⚠️  客户端错误: %d\n", resp.StatusCode)
+	} else {
+		fmt.Printf("✅ 请求成功: %d\n", resp.StatusCode)
+	}
 	
 	return resp.StatusCode < 500
 }

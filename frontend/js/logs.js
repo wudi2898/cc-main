@@ -68,6 +68,13 @@ async function loadTasks() {
         }
         tasks = await response.json();
         populateTaskSelect();
+        
+        // 如果没有URL参数且任务列表不为空，自动选择第一个任务
+        const urlParams = new URLSearchParams(window.location.search);
+        const taskId = urlParams.get('task');
+        if (!taskId && tasks.length > 0) {
+            selectTaskById(tasks[0].id);
+        }
     } catch (error) {
         console.error('加载任务失败:', error);
         alert('加载任务失败: ' + error.message);
