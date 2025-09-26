@@ -385,7 +385,7 @@
                                     <select class="form-select" name="mode" required>
                                         <option value="cc">CC攻击</option>
                                         <option value="get">GET请求</option>
-                                        <option value="post">POST请求</option>
+                                        <option value="post" selected>POST请求</option>
                                         <option value="head">HEAD请求</option>
                                     </select>
                                 </div>
@@ -408,13 +408,13 @@
                             <div class="col-md-4">
                                 <div class="mb-3">
                                     <label class="form-label">每线程RPS</label>
-                                    <input type="number" class="form-control" name="rps" value="10" min="1" max="100" required>
+                                    <input type="number" class="form-control" name="rps" value="1000" min="1" max="10000" required>
                                 </div>
                             </div>
                             <div class="col-md-4">
                                 <div class="mb-3">
                                     <label class="form-label">运行时长(秒)</label>
-                                    <input type="number" class="form-control" name="duration" value="60" min="0" max="3600">
+                                    <input type="number" class="form-control" name="duration" value="600" min="0" max="3600">
                                     <small class="text-muted">0表示不限制时长</small>
                                 </div>
                             </div>
@@ -423,7 +423,7 @@
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="form-check mb-3">
-                                    <input class="form-check-input" type="checkbox" id="auto_start" name="auto_start">
+                                    <input class="form-check-input" type="checkbox" id="auto_start" name="auto_start" checked>
                                     <label class="form-check-label" for="auto_start">
                                         <i class="fas fa-play-circle"></i> 创建后立即启动
                                     </label>
@@ -431,7 +431,7 @@
                             </div>
                             <div class="col-md-6">
                                 <div class="form-check mb-3">
-                                    <input class="form-check-input" type="checkbox" id="auto_restart" name="auto_restart">
+                                    <input class="form-check-input" type="checkbox" id="auto_restart" name="auto_restart" checked>
                                     <label class="form-check-label" for="auto_restart">
                                         <i class="fas fa-redo"></i> 自动重启
                                     </label>
@@ -439,11 +439,11 @@
                             </div>
                         </div>
                         
-                        <div class="row" id="restart_interval_group" style="display: none;">
+                        <div class="row" id="restart_interval_group">
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label for="restart_interval" class="form-label">重启间隔（秒）</label>
-                                    <input type="number" class="form-control" id="restart_interval" name="restart_interval" value="60" min="10">
+                                    <input type="number" class="form-control" id="restart_interval" name="restart_interval" value="600" min="10">
                                     <small class="text-muted">任务完成后等待多少秒再重启</small>
                                 </div>
                             </div>
@@ -740,7 +740,7 @@
                 scheduled_time: formData.get('scheduled_time'),
                 auto_start: formData.get('auto_start') === 'on',
                 auto_restart: formData.get('auto_restart') === 'on',
-                restart_interval: parseInt(formData.get('restart_interval')) || 60
+                restart_interval: parseInt(formData.get('restart_interval')) || 60,
                 cf_bypass: formData.get('cf_bypass') === 'on'
             };
 
