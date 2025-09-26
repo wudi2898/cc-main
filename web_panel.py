@@ -441,63 +441,72 @@ def stream_task_logs(task_id):
     """特定任务的SSE日志流 - 简化版"""
     def generate_task_logs():
         # 发送连接成功消息
+        timestamp = datetime.now().strftime('%H:%M:%S')
         message = f'开始监控任务: {task_id}'
-        yield f"data: {json.dumps({
+        
+        data = {
             'task_id': task_id,
             'log': {
-                'timestamp': datetime.now().strftime('%H:%M:%S'),
+                'timestamp': timestamp,
                 'level': 'INFO',
                 'message': message
             }
-        })}\n\n"
+        }
+        yield f"data: {json.dumps(data)}\n\n"
         
         # 简单的轮询方式
         while True:
             if task_id in task_manager.tasks:
                 task = task_manager.tasks[task_id]
+                timestamp = datetime.now().strftime('%H:%M:%S')
                 
                 # 检查任务状态
                 if task['status'] == 'running':
                     # 发送运行状态
                     message = f'任务运行中 - 线程: {task["config"]["threads"]}, RPS: {task["config"]["rps"]}'
-                    yield f"data: {json.dumps({
+                    data = {
                         'task_id': task_id,
                         'log': {
-                            'timestamp': datetime.now().strftime('%H:%M:%S'),
+                            'timestamp': timestamp,
                             'level': 'INFO',
                             'message': message
                         }
-                    })}\n\n"
+                    }
+                    yield f"data: {json.dumps(data)}\n\n"
                 elif task['status'] == 'completed':
-                    yield f"data: {json.dumps({
+                    data = {
                         'task_id': task_id,
                         'log': {
-                            'timestamp': datetime.now().strftime('%H:%M:%S'),
+                            'timestamp': timestamp,
                             'level': 'INFO',
                             'message': '任务已完成'
                         }
-                    })}\n\n"
+                    }
+                    yield f"data: {json.dumps(data)}\n\n"
                     break
                 elif task['status'] == 'stopped':
-                    yield f"data: {json.dumps({
+                    data = {
                         'task_id': task_id,
                         'log': {
-                            'timestamp': datetime.now().strftime('%H:%M:%S'),
+                            'timestamp': timestamp,
                             'level': 'WARNING',
                             'message': '任务已停止'
                         }
-                    })}\n\n"
+                    }
+                    yield f"data: {json.dumps(data)}\n\n"
                     break
             else:
                 # 任务不存在
-                yield f"data: {json.dumps({
+                timestamp = datetime.now().strftime('%H:%M:%S')
+                data = {
                     'task_id': task_id,
                     'log': {
-                        'timestamp': datetime.now().strftime('%H:%M:%S'),
+                        'timestamp': timestamp,
                         'level': 'ERROR',
                         'message': '任务不存在'
                     }
-                })}\n\n"
+                }
+                yield f"data: {json.dumps(data)}\n\n"
                 break
             
             time.sleep(1)  # 1秒间隔
