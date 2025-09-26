@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DDoS压测控制面板</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.socket.io/4.5.0/socket.io.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .status-running { color: #28a745; }
+        .status-stopped { color: #dc3545; }
+        .status-completed { color: #6c757d; }
+        .status-error { color: #fd7e14; }
+        .log-container { 
+            height: 300px; 
+            overflow-y: auto; 
+            background: #1e1e1e; 
+            color: #00ff00; 
+            font-family: 'Courier New', monospace;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .system-stat {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .chart-container {
+            position: relative;
+            height: 200px;
+            margin-top: 10px;
+        }
+        .task-card {
+            border-left: 4px solid #007bff;
+            margin-bottom: 15px;
+        }
+        .navbar-brand {
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-shield-alt"></i> DDoS压测控制面板
+            </a>
+            <div class="navbar-nav ms-auto">
+                <span class="nav-text text-light" id="current-time"></span>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid mt-4">
+        <div class="row">
+            <!-- 系统监控 -->
+            <div class="col-lg-3">
+                <h5><i class="fas fa-chart-line"></i> 系统监控</h5>
+                
+                <div class="system-stat">
+                    <h6><i class="fas fa-microchip"></i> CPU使用率</h6>
+                    <div class="progress mb-2">
+                        <div id="cpu-progress" class="progress-bar" style="width: 0%"></div>
+                    </div>
+                    <small id="cpu-text">0%</small>
+                </div>
+
+                <div class="system-stat">
+                    <h6><i class="fas fa-memory"></i> 内存使用</h6>
+                    <div class="progress mb-2">
+                        <div id="memory-progress" class="progress-bar bg-warning" style="width: 0%"></div>
+                    </div>
+                    <small id="memory-text">0 MB / 0 MB</small>
+                </div>
+
+                <div class="system-stat">
+                    <h6><i class="fas fa-network-wired"></i> 网络流量</h6>
+                    <div class="chart-container">
+                        <canvas id="network-chart"></canvas>
+                    </div>
+                </div>
+
+                <div class="system-stat">
+                    <h6><i class="fas fa-tasks"></i> 系统信息</h6>
+                    <div>连接数: <span id="connections">0</span></div>
+                    <div>进程数: <span id="processes">0</span></div>
+                </div>
+            </div>
+
+            <!-- 任务管理 -->
+            <div class="col-lg-6">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5><i class="fas fa-list"></i> 任务管理</h5>
+                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createTaskModal">
+                        <i class="fas fa-plus"></i> 创建任务
+                    </button>
+                </div>
+
+                <div id="task-list">
+                    <!-- 任务列表将动态加载 -->
+                </div>
+            </div>
+
+            <!-- 实时日志 -->
+            <div class="col-lg-3">
+                <h5><i class="fas fa-terminal"></i> 实时日志</h5>
+                <div class="log-container" id="logs">
+                    <div>等待日志输出...</div>
+                </div>
+                <div class="mt-2">
+                    <button class="btn btn-sm btn-secondary" onclick="clearLogs()">
+                        <i class="fas fa-trash"></i> 清空日志
+                    </button>
+                    <button class="btn btn-sm btn-info" onclick="downloadLogs()">
+                        <i class="fas fa-download"></i> 下载日志
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 创建任务模态框 -->
+    <div class="modal fade" id="createTaskModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">创建新任务</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="task-form">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">攻击模式</label>
+                                    <select class="form-select" name="mode" required>
+                                        <option value="cc">CC攻击</option>
+                                        <option value="get">GET请求</option>
+                                        <option value="post">POST请求</option>
+                                        <option value="head">HEAD请求</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">目标URL</label>
+                                    <input type="url" class="form-control" name="url" placeholder="https://example.com" required>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">线程数</label>
+                                    <input type="number" class="form-control" name="threads" value="100" min="1" max="10000" required>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">每线程RPS</label>
+                                    <input type="number" class="form-control" name="rps" value="10" min="1" max="100" required>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">运行时长(秒)</label>
+                                    <input type="number" class="form-control" name="duration" value="60" min="0" max="3600">
+                                    <small class="text-muted">0表示不限制时长</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">连接超时(秒)</label>
+                                    <input type="number" class="form-control" name="timeout" value="10" min="1" max="60">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">定时启动</label>
+                                    <input type="datetime-local" class="form-control" name="scheduled_time">
+                                    <small class="text-muted">留空表示立即启动</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Cookies (可选)</label>
+                            <textarea class="form-control" name="cookies" rows="2" placeholder="session=abc; token=xyz"></textarea>
+                        </div>
+
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="cf_bypass" id="cf_bypass">
+                                <label class="form-check-label" for="cf_bypass">
+                                    启用Cloudflare绕过优化
+                                </label>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" onclick="createTask()">创建任务</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // WebSocket连接
+        const socket = io();
+        
+        // 全局变量
+        let tasks = [];
+        let networkChart = null;
+        let networkData = {
+            labels: [],
+            sent: [],
+            recv: []
+        };
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            initNetworkChart();
+            loadTasks();
+            updateTime();
+            setInterval(updateTime, 1000);
+        });
+
+        // 更新时间
+        function updateTime() {
+            const now = new Date();
+            document.getElementById('current-time').textContent = now.toLocaleString();
+        }
+
+        // 初始化网络流量图表
+        function initNetworkChart() {
+            const ctx = document.getElementById('network-chart').getContext('2d');
+            networkChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: '发送',
+                        data: [],
+                        borderColor: '#28a745',
+                        backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                        tension: 0.4
+                    }, {
+                        label: '接收',
+                        data: [],
+                        borderColor: '#17a2b8',
+                        backgroundColor: 'rgba(23, 162, 184, 0.1)',
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return formatBytes(value);
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+        }
+
+        // WebSocket事件处理
+        socket.on('system_stats', function(stats) {
+            updateSystemStats(stats);
+        });
+
+        socket.on('task_log', function(data) {
+            addLog(`[${data.task_id}] ${data.log.message}`);
+        });
+
+        // 更新系统状态
+        function updateSystemStats(stats) {
+            if (stats.error) {
+                console.error('系统状态获取失败:', stats.error);
+                return;
+            }
+
+            // CPU
+            document.getElementById('cpu-progress').style.width = stats.cpu_percent + '%';
+            document.getElementById('cpu-text').textContent = stats.cpu_percent.toFixed(1) + '%';
+
+            // 内存
+            const memoryPercent = stats.memory.percent;
+            const memoryUsed = formatBytes(stats.memory.used);
+            const memoryTotal = formatBytes(stats.memory.total);
+            
+            document.getElementById('memory-progress').style.width = memoryPercent + '%';
+            document.getElementById('memory-text').textContent = `${memoryUsed} / ${memoryTotal}`;
+
+            // 连接和进程
+            document.getElementById('connections').textContent = stats.connections;
+            document.getElementById('processes').textContent = stats.processes;
+
+            // 更新网络图表
+            updateNetworkChart(stats);
+        }
+
+        // 更新网络图表
+        function updateNetworkChart(stats) {
+            const now = new Date().toLocaleTimeString();
+            
+            networkData.labels.push(now);
+            networkData.sent.push(stats.network.bytes_sent);
+            networkData.recv.push(stats.network.bytes_recv);
+
+            // 保持最近20个数据点
+            if (networkData.labels.length > 20) {
+                networkData.labels.shift();
+                networkData.sent.shift();
+                networkData.recv.shift();
+            }
+
+            networkChart.data.labels = networkData.labels;
+            networkChart.data.datasets[0].data = networkData.sent;
+            networkChart.data.datasets[1].data = networkData.recv;
+            networkChart.update('none');
+        }
+
+        // 格式化字节数
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        // 加载任务列表
+        function loadTasks() {
+            fetch('/api/tasks')
+                .then(response => response.json())
+                .then(data => {
+                    tasks = data;
+                    renderTasks();
+                })
+                .catch(error => {
+                    console.error('加载任务失败:', error);
+                    addLog('加载任务列表失败');
+                });
+        }
+
+        // 渲染任务列表
+        function renderTasks() {
+            const taskList = document.getElementById('task-list');
+            taskList.innerHTML = '';
+
+            tasks.forEach(task => {
+                const taskCard = document.createElement('div');
+                taskCard.className = 'card task-card';
+                
+                const statusClass = `status-${task.status}`;
+                const statusIcon = getStatusIcon(task.status);
+                
+                taskCard.innerHTML = `
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <h6 class="card-title">
+                                    <i class="${statusIcon}"></i>
+                                    ${task.config.mode.toUpperCase()} - ${task.config.url}
+                                </h6>
+                                <p class="card-text">
+                                    <small class="text-muted">
+                                        线程: ${task.config.threads} | RPS: ${task.config.rps} | 
+                                        状态: <span class="${statusClass}">${getStatusText(task.status)}</span>
+                                    </small>
+                                </p>
+                                ${task.start_time ? `<small class="text-muted">开始时间: ${new Date(task.start_time).toLocaleString()}</small>` : ''}
+                            </div>
+                            <div class="btn-group btn-group-sm">
+                                ${task.status === 'created' || task.status === 'stopped' ? 
+                                    `<button class="btn btn-success" onclick="startTask('${task.id}')">
+                                        <i class="fas fa-play"></i>
+                                    </button>` : ''
+                                }
+                                ${task.status === 'running' ? 
+                                    `<button class="btn btn-danger" onclick="stopTask('${task.id}')">
+                                        <i class="fas fa-stop"></i>
+                                    </button>` : ''
+                                }
+                                <button class="btn btn-info" onclick="viewTaskLogs('${task.id}')">
+                                    <i class="fas fa-file-alt"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                taskList.appendChild(taskCard);
+            });
+        }
+
+        // 获取状态图标
+        function getStatusIcon(status) {
+            const icons = {
+                'created': 'fas fa-clock',
+                'running': 'fas fa-play-circle',
+                'stopped': 'fas fa-stop-circle',
+                'completed': 'fas fa-check-circle',
+                'error': 'fas fa-exclamation-circle'
+            };
+            return icons[status] || 'fas fa-question-circle';
+        }
+
+        // 获取状态文本
+        function getStatusText(status) {
+            const texts = {
+                'created': '已创建',
+                'running': '运行中',
+                'stopped': '已停止',
+                'completed': '已完成',
+                'error': '错误'
+            };
+            return texts[status] || '未知';
+        }
+
+        // 创建任务
+        function createTask() {
+            const form = document.getElementById('task-form');
+            const formData = new FormData(form);
+            
+            const config = {
+                mode: formData.get('mode'),
+                url: formData.get('url'),
+                threads: parseInt(formData.get('threads')),
+                rps: parseInt(formData.get('rps')),
+                duration: parseInt(formData.get('duration')) || 0,
+                timeout: parseInt(formData.get('timeout')),
+                cookies: formData.get('cookies'),
+                scheduled_time: formData.get('scheduled_time'),
+                cf_bypass: formData.get('cf_bypass') === 'on'
+            };
+
+            fetch('/api/tasks', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(config)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert('创建任务失败: ' + data.error);
+                } else {
+                    addLog('任务创建成功: ' + data.task_id);
+                    loadTasks();
+                    bootstrap.Modal.getInstance(document.getElementById('createTaskModal')).hide();
+                    form.reset();
+                }
+            })
+            .catch(error => {
+                console.error('创建任务失败:', error);
+                alert('创建任务失败');
+            });
+        }
+
+        // 启动任务
+        function startTask(taskId) {
+            fetch(`/api/tasks/${taskId}/start`, {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert('启动任务失败: ' + data.error);
+                } else {
+                    addLog('任务启动成功: ' + taskId);
+                    loadTasks();
+                }
+            })
+            .catch(error => {
+                console.error('启动任务失败:', error);
+                alert('启动任务失败');
+            });
+        }
+
+        // 停止任务
+        function stopTask(taskId) {
+            fetch(`/api/tasks/${taskId}/stop`, {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert('停止任务失败: ' + data.error);
+                } else {
+                    addLog('任务停止成功: ' + taskId);
+                    loadTasks();
+                }
+            })
+            .catch(error => {
+                console.error('停止任务失败:', error);
+                alert('停止任务失败');
+            });
+        }
+
+        // 查看任务日志
+        function viewTaskLogs(taskId) {
+            fetch(`/api/tasks/${taskId}/logs`)
+                .then(response => response.json())
+                .then(logs => {
+                    const logContainer = document.getElementById('logs');
+                    logContainer.innerHTML = '';
+                    logs.forEach(log => {
+                        addLog(`[${log.timestamp}] ${log.message}`);
+                    });
+                })
+                .catch(error => {
+                    console.error('获取日志失败:', error);
+                    addLog('获取任务日志失败');
+                });
+        }
+
+        // 添加日志
+        function addLog(message) {
+            const logContainer = document.getElementById('logs');
+            const logEntry = document.createElement('div');
+            logEntry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logContainer.appendChild(logEntry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+
+            // 限制日志数量
+            const logs = logContainer.children;
+            if (logs.length > 100) {
+                logContainer.removeChild(logs[0]);
+            }
+        }
+
+        // 清空日志
+        function clearLogs() {
+            document.getElementById('logs').innerHTML = '<div>日志已清空</div>';
+        }
+
+        // 下载日志
+        function downloadLogs() {
+            const logs = document.getElementById('logs').textContent;
+            const blob = new Blob([logs], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `ddos_logs_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+</html>
