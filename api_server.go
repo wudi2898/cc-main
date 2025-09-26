@@ -142,7 +142,20 @@ func getTasks(w http.ResponseWriter, r *http.Request) {
 func createTask(w http.ResponseWriter, r *http.Request) {
 	var task Task
 	if err := json.NewDecoder(r.Body).Decode(&task); err != nil {
-		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		log.Printf("❌ 创建任务失败 - JSON解析错误: %v", err)
+		http.Error(w, "Invalid JSON: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+	
+	// 验证必填字段
+	if task.Name == "" {
+		log.Printf("❌ 创建任务失败 - 任务名称为空")
+		http.Error(w, "任务名称不能为空", http.StatusBadRequest)
+		return
+	}
+	if task.TargetURL == "" {
+		log.Printf("❌ 创建任务失败 - 目标URL为空")
+		http.Error(w, "目标URL不能为空", http.StatusBadRequest)
 		return
 	}
 	
@@ -157,7 +170,13 @@ func createTask(w http.ResponseWriter, r *http.Request) {
 	tasksMutex.Unlock()
 	
 	// 保存任务列表
-	saveTasks()
+	if err := saveTasks(); err != nil {
+		log.Printf("❌ 保存任务失败: %v", err)
+		http.Error(w, "保存任务失败", http.StatusInternalServerError)
+		return
+	}
+	
+	log.Printf("✅ 任务创建成功: %s (%s)", task.Name, task.ID)
 	
 	// 如果状态是running，立即启动
 	if task.Status == StatusRunning {
@@ -221,7 +240,9 @@ func updateTask(w http.ResponseWriter, r *http.Request) {
 	tasksMutex.Unlock()
 	
 	// 保存任务列表
-	saveTasks()
+	if err := saveTasks(); err != nil {
+		log.Printf("❌ 保存任务失败: %v", err)
+	}
 	
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
@@ -249,7 +270,9 @@ func deleteTask(w http.ResponseWriter, r *http.Request) {
 	tasksMutex.Unlock()
 	
 	// 保存任务列表
-	saveTasks()
+	if err := saveTasks(); err != nil {
+		log.Printf("❌ 保存任务失败: %v", err)
+	}
 	
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.WriteHeader(http.StatusOK)
@@ -279,7 +302,9 @@ func startTask(w http.ResponseWriter, r *http.Request) {
 	tasksMutex.Unlock()
 	
 	// 保存任务列表
-	saveTasks()
+	if err := saveTasks(); err != nil {
+		log.Printf("❌ 保存任务失败: %v", err)
+	}
 	
 	// 启动任务进程
 	go startTaskProcess(task)
@@ -475,7 +500,7 @@ func loadTasks() {
 }
 
 // 保存任务列表
-func saveTasks() {
+func saveTasks() error {
 	tasksMutex.RLock()
 	var taskList []*Task
 	for _, task := range tasks {
@@ -487,11 +512,14 @@ func saveTasks() {
 	data, err := json.MarshalIndent(taskList, "", "  ")
 	if err != nil {
 		log.Printf("序列化任务失败: %v", err)
-		return
+		return err
 	}
 	
 	// 写入文件
 	if err := ioutil.WriteFile(tasksFile, data, 0644); err != nil {
 		log.Printf("保存任务文件失败: %v", err)
+		return err
 	}
+	
+	return nil
 }
