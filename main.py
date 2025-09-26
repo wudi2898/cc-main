@@ -590,6 +590,15 @@ class AttackManager:
         self.request_queue = queue.Queue(maxsize=config.request_queue_size)
         self.burst_semaphore = BoundedSemaphore(config.connection_pool_size)
         
+        # 请求统计
+        self.total_requests = 0
+        self.successful_requests = 0
+        self.failed_requests = 0
+        self.start_time = None
+        self.last_stats_time = None
+        self.current_rps = 0
+        self.stats_lock = threading.Lock()
+        
     def setup_logging(self) -> None:
         """设置日志"""
         # 确保日志目录存在
@@ -603,6 +612,51 @@ class AttackManager:
                 logging.StreamHandler()
             ]
         )
+    
+    def update_stats(self, success: bool = True) -> None:
+        """更新请求统计"""
+        with self.stats_lock:
+            self.total_requests += 1
+            if success:
+                self.successful_requests += 1
+            else:
+                self.failed_requests += 1
+    
+    def get_stats(self) -> Dict:
+        """获取当前统计信息"""
+        with self.stats_lock:
+            current_time = time.time()
+            if self.start_time is None:
+                self.start_time = current_time
+                self.last_stats_time = current_time
+                return {
+                    'total_requests': 0,
+                    'successful_requests': 0,
+                    'failed_requests': 0,
+                    'current_rps': 0,
+                    'avg_rps': 0,
+                    'uptime': 0
+                }
+            
+            # 计算当前RPS（最近1秒）
+            time_diff = current_time - self.last_stats_time
+            if time_diff >= 1.0:  # 每秒更新一次
+                self.current_rps = (self.total_requests - self.last_total) / time_diff
+                self.last_total = self.total_requests
+                self.last_stats_time = current_time
+            
+            # 计算平均RPS
+            uptime = current_time - self.start_time
+            avg_rps = self.total_requests / uptime if uptime > 0 else 0
+            
+            return {
+                'total_requests': self.total_requests,
+                'successful_requests': self.successful_requests,
+                'failed_requests': self.failed_requests,
+                'current_rps': round(self.current_rps, 2),
+                'avg_rps': round(avg_rps, 2),
+                'uptime': round(uptime, 2)
+            }
     
     @contextmanager
     def create_socket_connection(self, target: str, port: int, protocol: str):
