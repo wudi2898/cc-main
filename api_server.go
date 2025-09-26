@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -468,9 +469,26 @@ func startTaskProcess(task *Task) {
 		return
 	}
 	
+	// 设置输出管道
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		log.Printf("❌ 创建输出管道失败: %v", err)
+		task.Status = StatusFailed
+		task.Logs = append(task.Logs, fmt.Sprintf("[%s] 创建输出管道失败: %v", time.Now().Format("15:04:05"), err))
+		return
+	}
+	
+	stderr, err := cmd.StderrPipe()
+	if err != nil {
+		log.Printf("❌ 创建错误管道失败: %v", err)
+		task.Status = StatusFailed
+		task.Logs = append(task.Logs, fmt.Sprintf("[%s] 创建错误管道失败: %v", time.Now().Format("15:04:05"), err))
+		return
+	}
+	
 	// 启动进程
 	task.Process = cmd
-	err := cmd.Start()
+	err = cmd.Start()
 	if err != nil {
 		log.Printf("❌ 启动进程失败: %v", err)
 		task.Status = StatusFailed
@@ -480,6 +498,25 @@ func startTaskProcess(task *Task) {
 	
 	log.Printf("✅ 进程启动成功，PID: %d", cmd.Process.Pid)
 	task.Logs = append(task.Logs, fmt.Sprintf("[%s] 进程启动成功，PID: %d", time.Now().Format("15:04:05"), cmd.Process.Pid))
+	
+	// 启动日志捕获
+	go func() {
+		scanner := bufio.NewScanner(stdout)
+		for scanner.Scan() {
+			line := scanner.Text()
+			task.Logs = append(task.Logs, fmt.Sprintf("[%s] %s", time.Now().Format("15:04:05"), line))
+			log.Printf("📝 任务日志: %s", line)
+		}
+	}()
+	
+	go func() {
+		scanner := bufio.NewScanner(stderr)
+		for scanner.Scan() {
+			line := scanner.Text()
+			task.Logs = append(task.Logs, fmt.Sprintf("[%s] ERROR: %s", time.Now().Format("15:04:05"), line))
+			log.Printf("❌ 任务错误: %s", line)
+		}
+	}()
 	
 	// 异步等待进程完成
 	go func() {
