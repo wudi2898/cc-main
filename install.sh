@@ -113,8 +113,7 @@ export PATH=$PATH:$GOPATH/bin
 # 检查Go版本
 GO_VERSION_NUM=$(go version | awk '{print $3}' | sed 's/go//' | cut -d. -f2)
 if [ "$GO_VERSION_NUM" -lt 21 ]; then
-    echo -e "${YELLOW}⚠️  Go版本过低，需要1.21+，当前版本: $(go version)${NC}"
-    echo -e "${CYAN}🔄 开始自动升级Go版本...${NC}"
+    echo -e "${CYAN}🔄 自动升级Go版本...${NC}"
     
     # 获取最新Go版本
     LATEST_GO_VERSION=$(curl -s https://go.dev/VERSION?m=text | head -1)
@@ -187,7 +186,16 @@ fi
 
 # 安装依赖
 echo -e "${CYAN}📦 安装依赖...${NC}"
-go mod tidy
+
+# 检查go.mod文件是否存在
+if [ ! -f "go.mod" ]; then
+    echo -e "${YELLOW}⚠️  go.mod文件不存在，创建Go模块...${NC}"
+    go mod init cc-main
+    go mod tidy
+else
+    go mod tidy
+fi
+
 if [ $? -ne 0 ]; then
     echo -e "${RED}❌ 依赖安装失败${NC}"
     exit 1
