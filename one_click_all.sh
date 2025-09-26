@@ -141,7 +141,7 @@ download_project() {
 install_project() {
     log_info "安装项目..."
     
-    # 运行安装脚本
+    # 直接运行安装脚本
     chmod +x install.sh
     ./install.sh
     
