@@ -85,9 +85,6 @@ func main() {
 	// 创建路由器
 	r := mux.NewRouter()
 	
-	// 静态文件服务
-	r.PathPrefix("/").Handler(http.FileServer(http.Dir("./frontend/")))
-	
 	// API路由
 	api := r.PathPrefix("/api").Subrouter()
 	
@@ -104,6 +101,9 @@ func main() {
 	
 	// WebSocket连接
 	api.HandleFunc("/ws", handleWebSocket)
+	
+	// 静态文件服务（放在最后，避免拦截API请求）
+	r.PathPrefix("/").Handler(http.FileServer(http.Dir("./frontend/")))
 	
 	// 启动服务器
 	fmt.Println("🚀 API服务器启动中...")
