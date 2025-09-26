@@ -52,19 +52,12 @@ var stats = &Stats{
 	StartTime: time.Now(),
 }
 
-// 随机User-Agent生成器
-var uaGenerator *fakeuseragent.UserAgent
-
-
 // 代理列表
 var proxies []string
 
 func main() {
 	// 解析命令行参数
 	config := parseArgs()
-	
-	// 初始化随机UA生成器
-	uaGenerator = fakeuseragent.New()
 	
 	// 加载代理
 	loadProxies(config.ProxyFile)
@@ -304,7 +297,7 @@ func createDirectClient(timeout int) *http.Client {
 
 func setAdvancedHeaders(req *http.Request, config *Config) {
 	// 随机User-Agent - 使用第三方库生成
-	userAgent := uaGenerator.Random()
+	userAgent := fakeuseragent.Random()
 	req.Header.Set("User-Agent", userAgent)
 	
 	// 随机Referer - 完全随机生成
