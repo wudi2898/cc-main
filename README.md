@@ -51,23 +51,20 @@
 
 ## 🚀 一键安装
 
-### 自动安装（推荐）
+### 真正的一键安装（推荐）
 ```bash
-# 克隆项目
-git clone https://github.com/wudi2898/cc-main.git
-cd cc-main
-
-# 一键安装（需要root权限）
-sudo chmod +x install.sh
-sudo ./install.sh
+# 一条命令完成所有操作
+curl -fsSL https://raw.githubusercontent.com/wudi2898/cc-main/main/one_click_all.sh | sudo bash
 ```
 
 **安装完成后自动启动Web面板**: http://localhost:5000
 
 ### 安装功能
-- ✅ 自动安装所有依赖
+- ✅ 自动下载项目
+- ✅ 安装所有依赖
 - ✅ 创建系统服务
 - ✅ 配置开机自启
+- ✅ 服务器性能优化
 - ✅ 系统网络优化
 - ✅ 创建管理命令
 - ✅ 安全权限设置
@@ -76,11 +73,12 @@ sudo ./install.sh
 
 ### 手动安装
 ```bash
+# 克隆项目
+git clone https://github.com/wudi2898/cc-main.git
+cd cc-main
+
 # 安装Python依赖
 pip3 install -r requirements.txt
-
-# 最小安装（仅核心功能）
-pip3 install -r requirements-minimal.txt
 
 # 设置权限
 chmod +x *.py *.sh

@@ -2,19 +2,13 @@
 
 ## 一键安装并启动
 
-### 1. 克隆项目
+### 真正的一键操作
 ```bash
-git clone https://github.com/wudi2898/cc-main.git
-cd cc-main
+# 一条命令完成所有操作
+curl -fsSL https://raw.githubusercontent.com/wudi2898/cc-main/main/one_click_all.sh | sudo bash
 ```
 
-### 2. 一键安装
-```bash
-sudo chmod +x install.sh
-sudo ./install.sh
-```
-
-### 3. 访问Web面板
+### 访问Web面板
 安装完成后，自动打开浏览器访问：
 - **本地访问**: http://localhost:5000
 - **远程访问**: http://你的IP:5000
