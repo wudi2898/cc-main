@@ -57,7 +57,6 @@ class TaskManager:
             'start_time': None,
             'end_time': None,
             'duration': config.get('duration', 0),
-            'scheduled_time': config.get('scheduled_time'),
             'auto_restart': config.get('auto_restart', False),
             'restart_interval': config.get('restart_interval', 60),  # 重启间隔（秒）
             'logs': []

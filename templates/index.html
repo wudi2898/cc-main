@@ -456,13 +456,6 @@
                                     <input type="number" class="form-control" name="timeout" value="10" min="1" max="60">
                                 </div>
                             </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label">定时启动</label>
-                                    <input type="datetime-local" class="form-control" name="scheduled_time">
-                                    <small class="text-muted">留空表示立即启动</small>
-                                </div>
-                            </div>
                         </div>
 
                         <div class="mb-3">
@@ -737,7 +730,6 @@
                 duration: parseInt(formData.get('duration')) || 0,
                 timeout: parseInt(formData.get('timeout')),
                 cookies: formData.get('cookies'),
-                scheduled_time: formData.get('scheduled_time'),
                 auto_start: formData.get('auto_start') === 'on',
                 auto_restart: formData.get('auto_restart') === 'on',
                 restart_interval: parseInt(formData.get('restart_interval')) || 60,
