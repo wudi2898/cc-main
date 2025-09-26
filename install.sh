@@ -69,7 +69,23 @@ pkill -f "main.go" 2>/dev/null || true
 sleep 2
 echo -e "${GREEN}✅ 相关进程已停止${NC}"
 
-# 检查并安装Go
+# 1. 首先克隆项目代码
+echo -e "${CYAN}📥 获取项目代码...${NC}"
+
+# 创建项目目录
+PROJECT_DIR="/tmp/cc-main-$(date +%s)"
+mkdir -p "$PROJECT_DIR"
+cd "$PROJECT_DIR"
+
+# 克隆项目
+git clone https://github.com/wudi2898/cc-main.git .
+if [ $? -ne 0 ]; then
+    echo -e "${RED}❌ 项目克隆失败${NC}"
+    exit 1
+fi
+echo -e "${GREEN}✅ 项目克隆成功${NC}"
+
+# 2. 检查并安装Go
 echo -e "${CYAN}📦 检查Go环境...${NC}"
 if ! command -v go &> /dev/null; then
     echo -e "${YELLOW}⚠️  Go未安装，开始自动安装...${NC}"
@@ -110,7 +126,7 @@ fi
 export GOPATH=$HOME/go
 export PATH=$PATH:$GOPATH/bin
 
-# 检查Go版本
+# 检查Go版本并升级
 GO_VERSION_NUM=$(go version | awk '{print $3}' | sed 's/go//' | cut -d. -f2)
 if [ "$GO_VERSION_NUM" -lt 21 ]; then
     echo -e "${CYAN}🔄 自动升级Go版本...${NC}"
@@ -184,49 +200,19 @@ else
     echo -e "${GREEN}✅ Go版本检查通过: $(go version)${NC}"
 fi
 
-# 克隆或更新项目
-echo -e "${CYAN}📥 获取项目代码...${NC}"
+# 3. 回到项目目录
+cd "$PROJECT_DIR"
 
-# 检查是否在项目目录中
-if [ ! -f "go.mod" ] || [ ! -f "main.go" ]; then
-    echo -e "${YELLOW}⚠️  项目代码不存在，开始克隆...${NC}"
-    
-    # 创建临时目录
-    TEMP_DIR=$(mktemp -d)
-    cd "$TEMP_DIR"
-    
-    # 克隆项目
-    git clone https://github.com/wudi2898/cc-main.git
-    if [ $? -ne 0 ]; then
-        echo -e "${RED}❌ 项目克隆失败${NC}"
-        exit 1
-    fi
-    
-    cd cc-main
-    echo -e "${GREEN}✅ 项目克隆成功${NC}"
-else
-    echo -e "${GREEN}✅ 项目代码已存在${NC}"
-fi
-
-# 安装依赖
+# 4. 安装依赖
 echo -e "${CYAN}📦 安装依赖...${NC}"
-
-# 检查go.mod文件是否存在
-if [ ! -f "go.mod" ]; then
-    echo -e "${YELLOW}⚠️  go.mod文件不存在，创建Go模块...${NC}"
-    go mod init cc-main
-    go mod tidy
-else
-    go mod tidy
-fi
-
+go mod tidy
 if [ $? -ne 0 ]; then
     echo -e "${RED}❌ 依赖安装失败${NC}"
     exit 1
 fi
 echo -e "${GREEN}✅ 依赖安装完成${NC}"
 
-# 构建程序
+# 5. 构建程序
 echo -e "${CYAN}🔨 构建程序...${NC}"
 
 # 构建主程序
@@ -250,11 +236,11 @@ echo -e "${GREEN}✅ API服务器构建完成${NC}"
 # 设置权限
 chmod +x cc-go api_server
 
-# 创建任务存储文件
+# 6. 创建任务存储文件
 echo "[]" > "$TASKS_FILE"
 chmod 666 "$TASKS_FILE"
 
-# 检查前端文件
+# 7. 检查前端文件
 echo -e "${CYAN}🎨 检查前端文件...${NC}"
 if [ ! -d "frontend" ]; then
     echo -e "${RED}❌ 前端目录不存在${NC}"
@@ -275,7 +261,7 @@ fi
 
 echo -e "${GREEN}✅ 前端文件检查完成${NC}"
 
-# 创建系统服务（可选）
+# 8. 创建系统服务（可选）
 echo -e "${CYAN}🔧 创建系统服务...${NC}"
 if [[ "$OS" == "Linux" ]]; then
     # 创建systemd服务
@@ -287,8 +273,8 @@ After=network.target
 [Service]
 Type=simple
 User=$USER
-WorkingDirectory=$(pwd)
-ExecStart=$(pwd)/api_server
+WorkingDirectory=$PROJECT_DIR
+ExecStart=$PROJECT_DIR/api_server -port $PORT -tasks-file $TASKS_FILE
 Restart=always
 RestartSec=5
 
@@ -302,16 +288,17 @@ EOF
     echo -e "${BLUE}💡 使用 'sudo systemctl enable cc-main' 设置开机自启${NC}"
 fi
 
-# 启动服务
+# 9. 启动服务
 echo -e "${GREEN}🚀 启动服务...${NC}"
-echo -e "${YELLOW}📱 前端地址: http://localhost:8080${NC}"
-echo -e "${YELLOW}🔗 API地址: http://localhost:8080/api${NC}"
-echo -e "${YELLOW}📊 日志页面: http://localhost:8080/logs.html${NC}"
+echo -e "${YELLOW}📱 前端地址: http://localhost:$PORT${NC}"
+echo -e "${YELLOW}🔗 API地址: http://localhost:$PORT/api${NC}"
+echo -e "${YELLOW}📊 日志页面: http://localhost:$PORT/logs.html${NC}"
 echo -e "${YELLOW}🛡️  CF绕过: 已启用${NC}"
 echo -e "${YELLOW}🎯 随机化: 上亿万万个组合${NC}"
+echo -e "${YELLOW}📁 项目目录: $PROJECT_DIR${NC}"
 echo ""
 echo -e "${BLUE}按 Ctrl+C 停止服务${NC}"
 echo ""
 
 # 启动API服务器
-./api_server
+./api_server -port "$PORT" -tasks-file "$TASKS_FILE"
