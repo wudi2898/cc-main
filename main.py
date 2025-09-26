@@ -1164,15 +1164,6 @@ class AttackManager:
                 self.logger.debug(f"内存管理错误: {e}")
                 time.sleep(60)
     
-    def _stats_worker(self) -> None:
-        """统计工作线程"""
-        while self.running:
-            current_total = self.proxy_manager.get_total_requests()
-            rps = current_total - self.last_total
-            self.last_total = current_total
-            
-            print(f"\r当前RPS: {rps}, 总请求: {current_total}", end="", flush=True)
-            time.sleep(1)
 
     
 def main():
