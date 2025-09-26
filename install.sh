@@ -288,11 +288,19 @@ EOF
     echo -e "${BLUE}💡 使用 'sudo systemctl enable cc-main' 设置开机自启${NC}"
 fi
 
-# 9. 启动服务
+# 9. 获取服务器IP地址
+echo -e "${CYAN}🌐 获取服务器IP地址...${NC}"
+SERVER_IP=""
+if command -v curl &> /dev/null; then
+    SERVER_IP=$(curl -s ifconfig.me 2>/dev/null || curl -s ipinfo.io/ip 2>/dev/null || curl -s icanhazip.com 2>/dev/null)
+fi
+if [ -z "$SERVER_IP" ]; then
+    SERVER_IP="localhost"
+fi
+
+# 10. 启动服务
 echo -e "${GREEN}🚀 启动服务...${NC}"
-echo -e "${YELLOW}📱 前端地址: http://localhost:$PORT${NC}"
-echo -e "${YELLOW}🔗 API地址: http://localhost:$PORT/api${NC}"
-echo -e "${YELLOW}📊 日志页面: http://localhost:$PORT/logs.html${NC}"
+echo -e "${YELLOW}📱 前端地址: http://$SERVER_IP:$PORT${NC}"
 echo -e "${YELLOW}🛡️  CF绕过: 已启用${NC}"
 echo -e "${YELLOW}🎯 随机化: 上亿万万个组合${NC}"
 echo -e "${YELLOW}📁 项目目录: $PROJECT_DIR${NC}"
