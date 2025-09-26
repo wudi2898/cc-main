@@ -362,112 +362,178 @@
 
     <!-- 创建任务模态框 -->
     <div class="modal fade" id="createTaskModal" tabindex="-1">
-        <div class="modal-dialog modal-lg">
+        <div class="modal-dialog modal-xl">
             <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">创建新任务</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-plus-circle"></i> 创建新任务
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <form id="task-form">
+                        <!-- 基本信息 -->
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h6 class="mb-0"><i class="fas fa-info-circle"></i> 基本信息</h6>
+                            </div>
+                            <div class="card-body">
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label class="form-label">攻击模式</label>
+                                            <label class="form-label">
+                                                <i class="fas fa-bolt"></i> 攻击模式
+                                            </label>
                                     <select class="form-select" name="mode" required>
-                                        <option value="cc">CC攻击</option>
-                                        <option value="get">GET请求</option>
-                                        <option value="post" selected>POST请求</option>
-                                        <option value="head">HEAD请求</option>
+                                                <option value="cc">CC攻击 - 持续连接攻击</option>
+                                                <option value="get">GET请求 - HTTP GET方法</option>
+                                                <option value="post" selected>POST请求 - HTTP POST方法</option>
+                                                <option value="head">HEAD请求 - HTTP HEAD方法</option>
                                     </select>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label class="form-label">目标URL</label>
+                                            <label class="form-label">
+                                                <i class="fas fa-globe"></i> 目标URL
+                                            </label>
                                     <input type="url" class="form-control" name="url" placeholder="https://example.com" required>
+                                            <small class="text-muted">请输入完整的URL地址</small>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="row">
-                            <div class="col-md-4">
-                                <div class="mb-3">
-                                    <label class="form-label">线程数</label>
-                                    <input type="number" class="form-control" name="threads" value="100" min="1" max="10000" required>
-                                </div>
+                        <!-- 性能参数 -->
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h6 class="mb-0"><i class="fas fa-tachometer-alt"></i> 性能参数</h6>
                             </div>
-                            <div class="col-md-4">
-                                <div class="mb-3">
-                                    <label class="form-label">每线程RPS</label>
-                                    <input type="number" class="form-control" name="rps" value="1000" min="1" max="10000" required>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <div class="mb-3">
+                                            <label class="form-label">
+                                                <i class="fas fa-users"></i> 线程数
+                                            </label>
+                                            <input type="number" class="form-control" name="threads" value="100" min="1" max="10000" required>
+                                            <small class="text-muted">并发线程数量 (1-10000)</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="mb-3">
+                                            <label class="form-label">
+                                                <i class="fas fa-rocket"></i> 每线程RPS
+                                            </label>
+                                            <input type="number" class="form-control" name="rps" value="1000" min="1" max="10000" required>
+                                            <small class="text-muted">每秒请求数 (1-10000)</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="mb-3">
+                                            <label class="form-label">
+                                                <i class="fas fa-clock"></i> 运行时长(秒)
+                                            </label>
+                                            <input type="number" class="form-control" name="duration" value="600" min="0" max="3600">
+                                            <small class="text-muted">0表示不限制时长</small>
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="mb-3">
-                                    <label class="form-label">运行时长(秒)</label>
-                                    <input type="number" class="form-control" name="duration" value="600" min="0" max="3600">
-                                    <small class="text-muted">0表示不限制时长</small>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="form-check mb-3">
-                                    <input class="form-check-input" type="checkbox" id="auto_start" name="auto_start" checked>
-                                    <label class="form-check-label" for="auto_start">
-                                        <i class="fas fa-play-circle"></i> 创建后立即启动
-                                    </label>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="form-check mb-3">
-                                    <input class="form-check-input" type="checkbox" id="auto_restart" name="auto_restart" checked>
-                                    <label class="form-check-label" for="auto_restart">
-                                        <i class="fas fa-redo"></i> 自动重启
-                                    </label>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="row" id="restart_interval_group">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label for="restart_interval" class="form-label">重启间隔（秒）</label>
-                                    <input type="number" class="form-control" id="restart_interval" name="restart_interval" value="600" min="10">
-                                    <small class="text-muted">任务完成后等待多少秒再重启</small>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label">连接超时(秒)</label>
-                                    <input type="number" class="form-control" name="timeout" value="10" min="1" max="60">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="form-label">
+                                                <i class="fas fa-stopwatch"></i> 连接超时(秒)
+                                            </label>
+                                            <input type="number" class="form-control" name="timeout" value="10" min="1" max="60">
+                                            <small class="text-muted">连接超时时间 (1-60秒)</small>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="mb-3">
-                            <label class="form-label">Cookies (可选)</label>
-                            <textarea class="form-control" name="cookies" rows="2" placeholder="session=abc; token=xyz"></textarea>
+                        <!-- 高级选项 -->
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h6 class="mb-0"><i class="fas fa-cogs"></i> 高级选项</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="form-label">
+                                                <i class="fas fa-cookie-bite"></i> Cookies (可选)
+                                            </label>
+                                            <textarea class="form-control" name="cookies" rows="2" placeholder="session=abc; token=xyz"></textarea>
+                                            <small class="text-muted">格式: key1=value1; key2=value2</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="form-label">
+                                                <i class="fas fa-shield-alt"></i> 安全选项
+                                            </label>
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" name="cf_bypass" id="cf_bypass">
+                                                <label class="form-check-label" for="cf_bypass">
+                                                    启用Cloudflare绕过优化
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
-                        <div class="mb-3">
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" name="cf_bypass" id="cf_bypass">
-                                <label class="form-check-label" for="cf_bypass">
-                                    启用Cloudflare绕过优化
-                                </label>
+                        <!-- 任务控制 -->
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h6 class="mb-0"><i class="fas fa-play-circle"></i> 任务控制</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-check mb-3">
+                                            <input class="form-check-input" type="checkbox" id="auto_start" name="auto_start" checked>
+                                            <label class="form-check-label" for="auto_start">
+                                                <i class="fas fa-play-circle"></i> 创建后立即启动
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-check mb-3">
+                                            <input class="form-check-input" type="checkbox" id="auto_restart" name="auto_restart" checked>
+                                            <label class="form-check-label" for="auto_restart">
+                                                <i class="fas fa-redo"></i> 自动重启
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="row" id="restart_interval_group">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="restart_interval" class="form-label">
+                                                <i class="fas fa-history"></i> 重启间隔（秒）
+                                            </label>
+                                            <input type="number" class="form-control" id="restart_interval" name="restart_interval" value="600" min="10">
+                                            <small class="text-muted">任务完成后等待多少秒再重启</small>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </form>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                    <button type="button" class="btn btn-primary" onclick="createTask()">创建任务</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times"></i> 取消
+                    </button>
+                    <button type="button" class="btn btn-primary" onclick="createTask()">
+                        <i class="fas fa-plus"></i> 创建任务
+                    </button>
                 </div>
             </div>
         </div>
