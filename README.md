@@ -18,14 +18,14 @@
 
 ```bash
 # 一行命令安装并运行（自动安装Go、构建、启动）
-curl -fsSL https://raw.githubusercontent.com/your-repo/cc-main/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/wudi2898/cc-main/main/install.sh | bash
 ```
 
 ### 手动安装（可选）
 
 ```bash
 # 克隆项目
-git clone https://github.com/your-repo/cc-main.git
+git clone https://github.com/wudi2898/cc-main.git
 cd cc-main
 
 # 手动安装
@@ -43,23 +43,23 @@ chmod +x install.sh
 
 ```bash
 # 自定义端口
-curl -fsSL https://raw.githubusercontent.com/your-repo/cc-main/main/install.sh | bash -s -- -p 9090
+curl -fsSL https://raw.githubusercontent.com/wudi2898/cc-main/main/install.sh | bash -s -- -p 9090
 
 # 自定义任务文件路径
-curl -fsSL https://raw.githubusercontent.com/your-repo/cc-main/main/install.sh | bash -s -- -t /my-tasks.json
+curl -fsSL https://raw.githubusercontent.com/wudi2898/cc-main/main/install.sh | bash -s -- -t /my-tasks.json
 
 # 查看帮助
-curl -fsSL https://raw.githubusercontent.com/your-repo/cc-main/main/install.sh | bash -s -- -h
+curl -fsSL https://raw.githubusercontent.com/wudi2898/cc-main/main/install.sh | bash -s -- -h
 ```
 
 ### 其他一行命令方式
 
 ```bash
 # 使用wget
-wget -qO- https://raw.githubusercontent.com/your-repo/cc-main/main/install.sh | bash
+wget -qO- https://raw.githubusercontent.com/wudi2898/cc-main/main/install.sh | bash
 
 # 使用curl（推荐）
-curl -fsSL https://raw.githubusercontent.com/your-repo/cc-main/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/wudi2898/cc-main/main/install.sh | bash
 ```
 
 ## 🎯 使用方法
