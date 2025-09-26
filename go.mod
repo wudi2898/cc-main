@@ -1,6 +1,6 @@
 module cc-main
 
-go 1.21
+go 1.18
 
 require (
 	github.com/EDDYCJY/fake-useragent v0.2.0
