@@ -109,21 +109,26 @@ func main() {
 	fmt.Println("🚀 API服务器启动中...")
 	// 获取服务器IP地址
 	serverIP := "localhost"
-	if command := exec.Command("curl", "-s", "-4", "ifconfig.me"); command.Run() == nil {
-		if output, err := command.Output(); err == nil && len(output) > 0 {
-			serverIP = strings.TrimSpace(string(output))
-		}
+	
+	// 尝试获取公网IP
+	if output, err := exec.Command("curl", "-s", "-4", "ifconfig.me").Output(); err == nil && len(output) > 0 {
+		serverIP = strings.TrimSpace(string(output))
+	} else if output, err := exec.Command("curl", "-s", "-4", "ipinfo.io/ip").Output(); err == nil && len(output) > 0 {
+		serverIP = strings.TrimSpace(string(output))
+	} else if output, err := exec.Command("curl", "-s", "-4", "icanhazip.com").Output(); err == nil && len(output) > 0 {
+		serverIP = strings.TrimSpace(string(output))
 	}
-	if serverIP == "localhost" {
-		if command := exec.Command("hostname", "-I"); command.Run() == nil {
-			if output, err := command.Output(); err == nil && len(output) > 0 {
-				ips := strings.Fields(string(output))
-				if len(ips) > 0 {
-					serverIP = ips[0]
-				}
+	
+	// 如果获取公网IP失败，尝试获取本地IP
+	if serverIP == "localhost" || serverIP == "" {
+		if output, err := exec.Command("hostname", "-I").Output(); err == nil && len(output) > 0 {
+			ips := strings.Fields(string(output))
+			if len(ips) > 0 {
+				serverIP = ips[0]
 			}
 		}
 	}
+	
 	fmt.Printf("📱 前端地址: http://%s:%s\n", serverIP, port)
 	fmt.Printf("🔗 API地址: http://%s:%s/api\n", serverIP, port)
 	fmt.Printf("📊 日志页面: http://%s:%s/logs.html\n", serverIP, port)
