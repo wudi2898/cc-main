@@ -85,12 +85,25 @@ class TaskManager:
             
         # 构建命令
         config = task['config']
-        # 获取当前工作目录
-        current_dir = os.getcwd()
-        python_path = os.path.join(current_dir, 'venv', 'bin', 'python')
+        # 获取项目目录
+        if os.path.exists('/opt/cc-main'):
+            project_dir = '/opt/cc-main'
+        else:
+            project_dir = os.getcwd()
+        
+        python_path = os.path.join(project_dir, 'venv', 'bin', 'python')
+        main_py_path = os.path.join(project_dir, 'main.py')
+        
+        # 检查文件是否存在
+        if not os.path.exists(main_py_path):
+            task['logs'].append({
+                'timestamp': datetime.now().strftime('%H:%M:%S'),
+                'message': f'错误: main.py 文件不存在于 {main_py_path}'
+            })
+            return False
         
         cmd = [
-            python_path, 'main.py',
+            python_path, main_py_path,
             config['mode'],
             config['url'],
             str(config['threads']),
@@ -106,13 +119,14 @@ class TaskManager:
             # 调试信息
             print(f"启动任务: {task_id}")
             print(f"命令: {' '.join(cmd)}")
-            print(f"工作目录: {current_dir}")
+            print(f"工作目录: {project_dir}")
             print(f"Python路径: {python_path}")
+            print(f"main.py路径: {main_py_path}")
             
             # 启动进程
             process = subprocess.Popen(
                 cmd,
-                cwd=current_dir,  # 使用动态获取的工作目录
+                cwd=project_dir,  # 使用项目目录
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 universal_newlines=True,
