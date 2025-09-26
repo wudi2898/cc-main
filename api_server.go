@@ -282,23 +282,49 @@ func startTask(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	taskId := vars["id"]
 	
+	log.Printf("🚀 尝试启动任务: %s", taskId)
+	
 	tasksMutex.Lock()
 	task, exists := tasks[taskId]
 	if !exists {
 		tasksMutex.Unlock()
+		log.Printf("❌ 任务不存在: %s", taskId)
 		http.Error(w, "Task not found", http.StatusNotFound)
 		return
 	}
 	
 	if task.Status == StatusRunning {
 		tasksMutex.Unlock()
+		log.Printf("⚠️  任务已在运行: %s", taskId)
 		http.Error(w, "Task is already running", http.StatusBadRequest)
 		return
+	}
+	
+	// 验证任务参数
+	if task.TargetURL == "" {
+		tasksMutex.Unlock()
+		log.Printf("❌ 任务目标URL为空: %s", taskId)
+		http.Error(w, "Target URL is required", http.StatusBadRequest)
+		return
+	}
+	
+	if task.Threads <= 0 {
+		task.Threads = 1000
+	}
+	if task.RPS <= 0 {
+		task.RPS = 1000
+	}
+	if task.Duration <= 0 {
+		task.Duration = 600
+	}
+	if task.Timeout <= 0 {
+		task.Timeout = 30
 	}
 	
 	task.Status = StatusRunning
 	now := time.Now()
 	task.StartedAt = &now
+	task.Logs = append(task.Logs, fmt.Sprintf("[%s] 任务启动中...", now.Format("15:04:05")))
 	tasksMutex.Unlock()
 	
 	// 保存任务列表
@@ -306,11 +332,14 @@ func startTask(w http.ResponseWriter, r *http.Request) {
 		log.Printf("❌ 保存任务失败: %v", err)
 	}
 	
+	log.Printf("✅ 任务启动成功: %s -> %s", task.Name, task.TargetURL)
+	
 	// 启动任务进程
 	go startTaskProcess(task)
 	
+	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{"status": "started"})
 }
 
 func stopTask(w http.ResponseWriter, r *http.Request) {
@@ -410,6 +439,8 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 
 // 启动任务进程
 func startTaskProcess(task *Task) {
+	log.Printf("🔧 构建命令参数: %s", task.TargetURL)
+	
 	// 构建命令
 	cmd := exec.Command("./cc-go",
 		"-url", task.TargetURL,
@@ -429,14 +460,26 @@ func startTaskProcess(task *Task) {
 	// 设置进程组，便于管理
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 	
+	// 检查cc-go文件是否存在
+	if _, err := os.Stat("./cc-go"); os.IsNotExist(err) {
+		log.Printf("❌ cc-go文件不存在: %v", err)
+		task.Status = StatusFailed
+		task.Logs = append(task.Logs, fmt.Sprintf("[%s] 错误: cc-go文件不存在", time.Now().Format("15:04:05")))
+		return
+	}
+	
 	// 启动进程
 	task.Process = cmd
 	err := cmd.Start()
 	if err != nil {
+		log.Printf("❌ 启动进程失败: %v", err)
 		task.Status = StatusFailed
-		task.Logs = append(task.Logs, fmt.Sprintf("启动失败: %v", err))
+		task.Logs = append(task.Logs, fmt.Sprintf("[%s] 启动失败: %v", time.Now().Format("15:04:05"), err))
 		return
 	}
+	
+	log.Printf("✅ 进程启动成功，PID: %d", cmd.Process.Pid)
+	task.Logs = append(task.Logs, fmt.Sprintf("[%s] 进程启动成功，PID: %d", time.Now().Format("15:04:05"), cmd.Process.Pid))
 	
 	// 异步等待进程完成
 	go func() {
