@@ -112,10 +112,11 @@ export PATH=$PATH:$GOPATH/bin
 
 # 检查Go版本
 GO_VERSION_NUM=$(go version | awk '{print $3}' | sed 's/go//' | cut -d. -f2)
-if [ "$GO_VERSION_NUM" -lt 21 ]; then
-    echo -e "${RED}❌ Go版本过低，需要1.21+，当前版本: $(go version)${NC}"
+if [ "$GO_VERSION_NUM" -lt 18 ]; then
+    echo -e "${RED}❌ Go版本过低，需要1.18+，当前版本: $(go version)${NC}"
     exit 1
 fi
+echo -e "${GREEN}✅ Go版本检查通过${NC}"
 
 # 安装依赖
 echo -e "${CYAN}📦 安装依赖...${NC}"
@@ -151,8 +152,8 @@ echo -e "${GREEN}✅ API服务器构建完成${NC}"
 chmod +x cc-go api_server
 
 # 创建任务存储文件
-echo "[]" > /cc-tasks.json
-chmod 666 /cc-tasks.json
+echo "[]" > "$TASKS_FILE"
+chmod 666 "$TASKS_FILE"
 
 # 检查前端文件
 echo -e "${CYAN}🎨 检查前端文件...${NC}"
