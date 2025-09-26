@@ -302,7 +302,6 @@ fi
 echo -e "${GREEN}🚀 启动服务...${NC}"
 echo -e "${YELLOW}📱 前端地址: http://$SERVER_IP:$PORT${NC}"
 echo -e "${YELLOW}🛡️  CF绕过: 已启用${NC}"
-echo -e "${YELLOW}🎯 随机化: 上亿万万个组合${NC}"
 echo -e "${YELLOW}📁 项目目录: $PROJECT_DIR${NC}"
 echo ""
 echo -e "${BLUE}按 Ctrl+C 停止服务${NC}"
