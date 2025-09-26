@@ -184,9 +184,29 @@ else
     echo -e "${GREEN}✅ Go版本检查通过: $(go version)${NC}"
 fi
 
-# 获取脚本所在目录
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-cd "$SCRIPT_DIR"
+# 克隆或更新项目
+echo -e "${CYAN}📥 获取项目代码...${NC}"
+
+# 检查是否在项目目录中
+if [ ! -f "go.mod" ] || [ ! -f "main.go" ]; then
+    echo -e "${YELLOW}⚠️  项目代码不存在，开始克隆...${NC}"
+    
+    # 创建临时目录
+    TEMP_DIR=$(mktemp -d)
+    cd "$TEMP_DIR"
+    
+    # 克隆项目
+    git clone https://github.com/wudi2898/cc-main.git
+    if [ $? -ne 0 ]; then
+        echo -e "${RED}❌ 项目克隆失败${NC}"
+        exit 1
+    fi
+    
+    cd cc-main
+    echo -e "${GREEN}✅ 项目克隆成功${NC}"
+else
+    echo -e "${GREEN}✅ 项目代码已存在${NC}"
+fi
 
 # 安装依赖
 echo -e "${CYAN}📦 安装依赖...${NC}"
