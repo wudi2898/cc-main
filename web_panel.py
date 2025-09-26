@@ -76,7 +76,7 @@ class TaskManager:
         # 构建命令
         config = task['config']
         cmd = [
-            'python3', 'main.py',
+            '/opt/cc-main/venv/bin/python', 'main.py',
             config['mode'],
             config['url'],
             str(config['threads']),
@@ -92,6 +92,7 @@ class TaskManager:
             # 启动进程
             process = subprocess.Popen(
                 cmd,
+                cwd='/opt/cc-main',  # 设置工作目录
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 universal_newlines=True,
