@@ -106,7 +106,8 @@ class TaskManager:
             config['mode'],
             config['url'],
             str(config['threads']),
-            str(config['rps'])
+            str(config['rps']),
+            '--proxy-file', 'config/socks5.txt'
         ]
         
         if config.get('cookies'):
@@ -190,24 +191,38 @@ class TaskManager:
         task = self.tasks[task_id]
         
         try:
-            for line in iter(process.stdout.readline, ''):
-                if line:
-                    log_entry = {
-                        'timestamp': datetime.now().strftime('%H:%M:%S'),
-                        'message': line.strip()
-                    }
-                    task['logs'].append(log_entry)
+            # 使用非阻塞方式读取日志
+            import select
+            import sys
+            
+            while True:
+                # 检查进程是否还在运行
+                if process.poll() is not None:
+                    break
                     
-                    # 限制日志数量
-                    if len(task['logs']) > 1000:
-                        task['logs'] = task['logs'][-500:]
+                # 非阻塞读取
+                if sys.platform != 'win32':
+                    # Unix系统使用select
+                    ready, _, _ = select.select([process.stdout], [], [], 0.1)
+                    if ready:
+                        line = process.stdout.readline()
+                        if line:
+                            self._add_log_entry(task_id, line.strip())
+                else:
+                    # Windows系统
+                    line = process.stdout.readline()
+                    if line:
+                        self._add_log_entry(task_id, line.strip())
+                    else:
+                        time.sleep(0.1)
                         
-                    # 实时推送日志
-                    socketio.emit('task_log', {
-                        'task_id': task_id,
-                        'log': log_entry
-                    })
-                    
+            # 读取剩余输出
+            remaining_output = process.stdout.read()
+            if remaining_output:
+                for line in remaining_output.splitlines():
+                    if line.strip():
+                        self._add_log_entry(task_id, line.strip())
+            
             # 等待进程结束
             return_code = process.wait()
             
@@ -216,18 +231,12 @@ class TaskManager:
             if task and task['status'] == 'running':
                 task['status'] = 'completed'
                 task['end_time'] = datetime.now()
-                task['logs'].append({
-                    'timestamp': datetime.now().strftime('%H:%M:%S'),
-                    'message': f'任务完成，退出码: {return_code}'
-                })
+                self._add_log_entry(task_id, f'任务完成，退出码: {return_code}')
                 
                 # 如果启用了自动重启
                 if task.get('auto_restart', False):
                     restart_interval = task.get('restart_interval', 60)
-                    task['logs'].append({
-                        'timestamp': datetime.now().strftime('%H:%M:%S'),
-                        'message': f'任务将在 {restart_interval} 秒后自动重启'
-                    })
+                    self._add_log_entry(task_id, f'任务将在 {restart_interval} 秒后自动重启')
                     
                     # 启动重启定时器
                     restart_thread = threading.Thread(
@@ -238,10 +247,33 @@ class TaskManager:
                     restart_thread.start()
                 
         except Exception as e:
-            task['logs'].append({
-                'timestamp': datetime.now().strftime('%H:%M:%S'),
-                'message': f"日志读取错误: {str(e)}"
+            self._add_log_entry(task_id, f"日志读取错误: {str(e)}")
+    
+    def _add_log_entry(self, task_id, message):
+        """添加日志条目并实时推送"""
+        task = self.tasks.get(task_id)
+        if not task:
+            return
+            
+        log_entry = {
+            'timestamp': datetime.now().strftime('%H:%M:%S'),
+            'message': message
+        }
+        
+        task['logs'].append(log_entry)
+        
+        # 限制日志数量
+        if len(task['logs']) > 1000:
+            task['logs'] = task['logs'][-500:]
+            
+        # 实时推送日志
+        try:
+            socketio.emit('task_log', {
+                'task_id': task_id,
+                'log': log_entry
             })
+        except Exception as e:
+            print(f"WebSocket推送失败: {e}")
             
     def _task_timer(self, task_id, duration):
         """任务时长控制"""
