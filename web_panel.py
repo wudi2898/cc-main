@@ -58,8 +58,7 @@ class TaskManager:
             'end_time': None,
             'duration': config.get('duration', 0),
             'auto_restart': config.get('auto_restart', False),
-            'restart_interval': config.get('restart_interval', 60),  # 重启间隔（秒）
-            'logs': []
+            'restart_interval': config.get('restart_interval', 60)  # 重启间隔（秒）
         }
         
         self.tasks[task_id] = task
@@ -183,61 +182,14 @@ class TaskManager:
             return True
             
         except Exception as e:
-            task['logs'].append(f"停止失败: {str(e)}")
+            print(f"停止任务失败: {str(e)}")
             return False
             
     def _read_task_logs(self, task_id, process):
-        """读取任务日志 - 改进的实时日志读取"""
+        """简化的任务监控"""
         task = self.tasks[task_id]
         
         try:
-            import select
-            import sys
-            import fcntl
-            
-            # 设置非阻塞模式
-            if sys.platform != 'win32':
-                fd = process.stdout.fileno()
-                fl = fcntl.fcntl(fd, fcntl.F_GETFL)
-                fcntl.fcntl(fd, fcntl.F_SETFL, fl | os.O_NONBLOCK)
-            
-            while True:
-                # 检查进程是否还在运行
-                if process.poll() is not None:
-                    break
-                    
-                try:
-                    # 非阻塞读取
-                    if sys.platform != 'win32':
-                        # Unix系统使用select
-                        ready, _, _ = select.select([process.stdout], [], [], 0.05)
-                        if ready:
-                            line = process.stdout.readline()
-                            if line:
-                                self._add_log_entry(task_id, line.strip())
-                    else:
-                        # Windows系统
-                        line = process.stdout.readline()
-                        if line:
-                            self._add_log_entry(task_id, line.strip())
-                        else:
-                            time.sleep(0.05)
-                            
-                except (OSError, IOError):
-                    # 没有数据可读，继续循环
-                    time.sleep(0.05)
-                    continue
-                        
-            # 读取剩余输出
-            try:
-                remaining_output = process.stdout.read()
-                if remaining_output:
-                    for line in remaining_output.splitlines():
-                        if line.strip():
-                            self._add_log_entry(task_id, line.strip())
-            except:
-                pass
-            
             # 等待进程结束
             return_code = process.wait()
             
@@ -246,12 +198,10 @@ class TaskManager:
             if task and task['status'] == 'running':
                 task['status'] = 'completed'
                 task['end_time'] = datetime.now()
-                self._add_log_entry(task_id, f'任务完成，退出码: {return_code}')
                 
                 # 如果启用了自动重启
                 if task.get('auto_restart', False):
                     restart_interval = task.get('restart_interval', 60)
-                    self._add_log_entry(task_id, f'任务将在 {restart_interval} 秒后自动重启')
                     
                     # 启动重启定时器
                     restart_thread = threading.Thread(
@@ -262,51 +212,7 @@ class TaskManager:
                     restart_thread.start()
                 
         except Exception as e:
-            self._add_log_entry(task_id, f"日志读取错误: {str(e)}")
-    
-    def _add_log_entry(self, task_id, message):
-        """添加日志条目并实时推送"""
-        task = self.tasks.get(task_id)
-        if not task:
-            return
-            
-        # 清理和格式化消息
-        message = message.strip()
-        if not message:
-            return
-            
-        # 解析日志级别和内容
-        log_level = "INFO"
-        if "ERROR" in message or "错误" in message or "失败" in message:
-            log_level = "ERROR"
-        elif "WARNING" in message or "警告" in message:
-            log_level = "WARNING"
-        elif "INFO" in message or "信息" in message:
-            log_level = "INFO"
-        elif "DEBUG" in message or "调试" in message:
-            log_level = "DEBUG"
-            
-        log_entry = {
-            'timestamp': datetime.now().strftime('%H:%M:%S'),
-            'level': log_level,
-            'message': message
-        }
-        
-        task['logs'].append(log_entry)
-        
-        # 限制日志数量
-        if len(task['logs']) > 1000:
-            task['logs'] = task['logs'][-500:]
-            
-        # 实时推送日志
-        try:
-            socketio.emit('task_log', {
-                'task_id': task_id,
-                'log': log_entry
-            })
-            print(f"推送日志: {task_id} - {message}")  # 调试信息
-        except Exception as e:
-            print(f"WebSocket推送失败: {e}")
+            print(f"任务监控错误: {str(e)}")
             
     def _task_timer(self, task_id, duration):
         """任务时长控制"""
@@ -495,12 +401,8 @@ def update_task(task_id):
         task['auto_restart'] = config.get('auto_restart', False)
         task['restart_interval'] = config.get('restart_interval', 60)
         
-        # 添加日志
-        task['logs'].append({
-            'timestamp': datetime.now().strftime('%H:%M:%S'),
-            'level': 'INFO',
-            'message': f'任务配置已更新: {config["mode"]} -> {config["url"]}'
-        })
+        # 记录更新
+        print(f'任务配置已更新: {config["mode"]} -> {config["url"]}')
         
         return jsonify({'message': '任务更新成功'})
         
@@ -528,14 +430,6 @@ def delete_task(task_id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/tasks/<task_id>/logs')
-def get_task_logs(task_id):
-    """获取任务日志"""
-    if task_id not in task_manager.tasks:
-        return jsonify({'error': '任务不存在'}), 404
-        
-    task = task_manager.tasks[task_id]
-    return jsonify(task['logs'])
 
 @app.route('/api/system/stats')
 def get_system_stats_api():
@@ -544,38 +438,67 @@ def get_system_stats_api():
 
 @app.route('/api/logs/stream/<task_id>')
 def stream_task_logs(task_id):
-    """特定任务的SSE日志流"""
+    """特定任务的SSE日志流 - 简化版"""
     def generate_task_logs():
-        last_log_count = 0
+        # 发送连接成功消息
+        yield f"data: {json.dumps({
+            'task_id': task_id,
+            'log': {
+                'timestamp': datetime.now().strftime('%H:%M:%S'),
+                'level': 'INFO',
+                'message': f'开始监控任务: {task_id}'
+            }
+        })}\n\n"
+        
+        # 简单的轮询方式
         while True:
             if task_id in task_manager.tasks:
                 task = task_manager.tasks[task_id]
-                current_log_count = len(task['logs'])
                 
-                # 只发送新增的日志
-                if current_log_count > last_log_count:
-                    new_logs = task['logs'][last_log_count:]
-                    for log in new_logs:
-                        log_data = {
-                            'task_id': task_id,
-                            'log': log
+                # 检查任务状态
+                if task['status'] == 'running':
+                    # 发送运行状态
+                    yield f"data: {json.dumps({
+                        'task_id': task_id,
+                        'log': {
+                            'timestamp': datetime.now().strftime('%H:%M:%S'),
+                            'level': 'INFO',
+                            'message': f'任务运行中 - 线程: {task["config"]["threads"]}, RPS: {task["config"]["rps"]}'
                         }
-                        yield f"data: {json.dumps(log_data)}\n\n"
-                    last_log_count = current_log_count
+                    })}\n\n"
+                elif task['status'] == 'completed':
+                    yield f"data: {json.dumps({
+                        'task_id': task_id,
+                        'log': {
+                            'timestamp': datetime.now().strftime('%H:%M:%S'),
+                            'level': 'INFO',
+                            'message': '任务已完成'
+                        }
+                    })}\n\n"
+                    break
+                elif task['status'] == 'stopped':
+                    yield f"data: {json.dumps({
+                        'task_id': task_id,
+                        'log': {
+                            'timestamp': datetime.now().strftime('%H:%M:%S'),
+                            'level': 'WARNING',
+                            'message': '任务已停止'
+                        }
+                    })}\n\n"
+                    break
             else:
-                # 任务不存在，发送错误信息
-                error_data = {
+                # 任务不存在
+                yield f"data: {json.dumps({
                     'task_id': task_id,
                     'log': {
                         'timestamp': datetime.now().strftime('%H:%M:%S'),
                         'level': 'ERROR',
                         'message': '任务不存在'
                     }
-                }
-                yield f"data: {json.dumps(error_data)}\n\n"
+                })}\n\n"
                 break
             
-            time.sleep(0.05)  # 50ms间隔，更实时
+            time.sleep(1)  # 1秒间隔
     
     return Response(generate_task_logs(), mimetype='text/event-stream', headers={
         'Cache-Control': 'no-cache',
