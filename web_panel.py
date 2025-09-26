@@ -530,21 +530,23 @@ def stream_task_logs(task_id):
                 if current_log_count > last_log_count:
                     new_logs = task['logs'][last_log_count:]
                     for log in new_logs:
-                        yield f"data: {json.dumps({
+                        log_data = {
                             'task_id': task_id,
                             'log': log
-                        })}\n\n"
+                        }
+                        yield f"data: {json.dumps(log_data)}\n\n"
                     last_log_count = current_log_count
             else:
                 # 任务不存在，发送错误信息
-                yield f"data: {json.dumps({
+                error_data = {
                     'task_id': task_id,
                     'log': {
                         'timestamp': datetime.now().strftime('%H:%M:%S'),
                         'level': 'ERROR',
                         'message': '任务不存在'
                     }
-                })}\n\n"
+                }
+                yield f"data: {json.dumps(error_data)}\n\n"
                 break
             
             time.sleep(0.05)  # 50ms间隔，更实时
