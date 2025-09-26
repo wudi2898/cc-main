@@ -19,6 +19,7 @@ import datetime
 import logging
 import gc
 import queue
+import os
 from contextlib import contextmanager
 from typing import List, Dict, Optional, Tuple
 from dataclasses import dataclass
@@ -38,12 +39,12 @@ except ImportError:
 @dataclass
 class Config:
     """配置类，集中管理所有配置项"""
-    proxy_file: str = "socks5.txt"
+    proxy_file: str = "config/socks5.txt"
     request_timeout: int = 10
     connection_timeout: int = 5
     max_retries: int = 3
     user_agents_file: Optional[str] = None
-    output_log: str = "attack.log"
+    output_log: str = "logs/attack.log"
     cf_bypass: bool = False  # Cloudflare绕过优化
     http2_support: bool = False  # HTTP/2支持
     # 超负荷运转模式配置
@@ -60,7 +61,7 @@ class Config:
     disable_nagle: bool = False  # 禁用Nagle算法
     # 代理类型配置
     proxy_type: str = "socks5"  # socks5, socks4, http
-    http_proxy_file: Optional[str] = None  # HTTP代理文件
+    http_proxy_file: Optional[str] = "config/http_proxies.txt"  # HTTP代理文件
 
 
 class UserAgentGenerator:
@@ -121,28 +122,28 @@ class HTTPHeaderGenerator:
     def load_accept_headers(cls) -> List[str]:
         """从配置文件加载Accept headers"""
         try:
-            with open("accept_headers.txt", "r", encoding="utf-8") as f:
+            with open("config/accept_headers.txt", "r", encoding="utf-8") as f:
                 headers = [line.strip() + "\r\n" for line in f if line.strip()]
             return headers if headers else cls.DEFAULT_ACCEPT_HEADERS
         except FileNotFoundError:
-            print("警告: accept_headers.txt 文件未找到，使用默认headers")
+            print("警告: config/accept_headers.txt 文件未找到，使用默认headers")
             return cls.DEFAULT_ACCEPT_HEADERS
         except Exception as e:
-            print(f"错误: 加载accept_headers.txt失败: {e}")
+            print(f"错误: 加载config/accept_headers.txt失败: {e}")
             return cls.DEFAULT_ACCEPT_HEADERS
     
     @classmethod
     def load_referers(cls) -> List[str]:
         """从配置文件加载Referers"""
         try:
-            with open("referers.txt", "r", encoding="utf-8") as f:
+            with open("config/referers.txt", "r", encoding="utf-8") as f:
                 referers = [line.strip() for line in f if line.strip()]
             return referers if referers else cls.DEFAULT_REFERERS
         except FileNotFoundError:
-            print("警告: referers.txt 文件未找到，使用默认referers")
+            print("警告: config/referers.txt 文件未找到，使用默认referers")
             return cls.DEFAULT_REFERERS
         except Exception as e:
-            print(f"错误: 加载referers.txt失败: {e}")
+            print(f"错误: 加载config/referers.txt失败: {e}")
             return cls.DEFAULT_REFERERS
     
     def __init__(self, cf_bypass=False):
@@ -542,6 +543,9 @@ class AttackManager:
         
     def setup_logging(self) -> None:
         """设置日志"""
+        # 确保日志目录存在
+        os.makedirs(os.path.dirname(self.config.output_log), exist_ok=True)
+        
         logging.basicConfig(
             level=logging.INFO,
             format='%(asctime)s - %(levelname)s - %(message)s',

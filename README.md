@@ -9,6 +9,7 @@
 ## 📋 目录
 
 - [功能特点](#功能特点)
+- [一键安装](#一键安装)
 - [快速开始](#快速开始)
 - [Web控制面板](#web控制面板)
 - [命令行使用](#命令行使用)
@@ -16,6 +17,8 @@
 - [Cloudflare绕过](#cloudflare绕过)
 - [代理配置](#代理配置)
 - [性能优化](#性能优化)
+- [系统服务](#系统服务)
+- [依赖说明](#依赖说明)
 - [故障排除](#故障排除)
 
 ## 🌟 功能特点
@@ -46,14 +49,35 @@
 - **🔄 自动重试**: 智能故障恢复机制
 - **📈 统计分析**: 详细性能数据报告
 
+## 🚀 一键安装
+
+### 自动安装（推荐）
+```bash
+# 克隆项目
+git clone https://github.com/wudi2898/cc-main.git
+cd cc-main
+
+# 一键安装（需要root权限）
+sudo chmod +x install.sh
+sudo ./install.sh
+```
+
+**安装完成后自动启动Web面板**: http://localhost:5000
+
+### 安装功能
+- ✅ 自动安装所有依赖
+- ✅ 创建系统服务
+- ✅ 配置开机自启
+- ✅ 系统网络优化
+- ✅ 创建管理命令
+- ✅ 安全权限设置
+
 ## 🚀 快速开始
 
-### 一键安装
+### 快速安装（推荐）
 ```bash
-git clone https://github.com/your-repo/ddos-tool.git
-cd ddos-tool
-chmod +x install.sh
-./install.sh
+# 仅安装核心依赖，快速启动
+./quick_install.sh
 ```
 
 ### 手动安装
@@ -61,11 +85,14 @@ chmod +x install.sh
 # 安装Python依赖
 pip3 install -r requirements.txt
 
+# 最小安装（仅核心功能）
+pip3 install -r requirements-minimal.txt
+
 # 设置权限
 chmod +x *.py *.sh
 
 # 配置代理（必需）
-echo "127.0.0.1:1080" > socks5.txt
+echo "127.0.0.1:1080" > config/socks5.txt
 ```
 
 ## 🌐 Web控制面板
@@ -223,7 +250,7 @@ socket.SO_KEEPALIVE = 1
 
 ### SOCKS5代理 (推荐)
 ```bash
-# socks5.txt 格式
+# config/socks5.txt 格式
 127.0.0.1:1080
 192.168.1.100:1080
 proxy.example.com:1080
@@ -240,13 +267,22 @@ proxy.example.com:1080
 # 使用HTTP代理
 python3 main.py cc https://target.com 100 10 \
   --proxy-type http \
-  --http-proxy-file http_proxies.txt
+  --http-proxy-file config/http_proxies.txt
 ```
 
-### 代理性能对比
+### 代理配置示例
 ```bash
-# 运行性能测试
-python3 proxy_benchmark.py
+# 编辑SOCKS5代理
+nano config/socks5.txt
+
+# 编辑HTTP代理
+nano config/http_proxies.txt
+
+# 编辑请求头
+nano config/accept_headers.txt
+
+# 编辑引用页
+nano config/referers.txt
 ```
 
 ## 🎯 性能优化
@@ -277,6 +313,80 @@ sysctl -p
 # 文件描述符限制
 ulimit -n 65535
 ```
+
+## 🔧 系统服务
+
+### 服务管理命令
+```bash
+# 启动服务
+cc-start
+
+# 停止服务
+cc-stop
+
+# 重启服务
+cc-restart
+
+# 查看状态
+cc-status
+
+# 查看日志
+cc-logs
+```
+
+### 开机自启
+安装后自动配置开机自启，无需手动设置。
+
+### 服务配置
+- **安装目录**: `/opt/cc-main`
+- **运行用户**: `cc-main`
+- **Web端口**: `5000`
+- **配置目录**: `/opt/cc-main/config`
+- **日志目录**: `/opt/cc-main/logs`
+
+### 手动启动Web面板
+```bash
+# 使用启动脚本
+./start_panel.sh
+
+# 直接启动
+python3 web_panel.py
+
+# 后台启动
+./start_panel.sh -b
+
+# 调试模式
+./start_panel.sh -d
+```
+
+### 卸载工具
+```bash
+# 完全卸载
+sudo ./uninstall.sh
+```
+
+## 📦 依赖说明
+
+### 核心依赖
+- **flask==2.3.3** - Web框架
+- **flask-socketio==5.3.6** - WebSocket支持
+- **psutil==5.9.5** - 系统监控
+- **PySocks==1.7.1** - SOCKS代理支持
+
+### 完整依赖
+```bash
+# 安装所有依赖
+pip install -r requirements.txt
+```
+
+### 最小依赖
+```bash
+# 仅核心功能
+pip install -r requirements-minimal.txt
+```
+
+### 依赖详情
+详细的依赖说明请查看 [DEPENDENCIES.md](DEPENDENCIES.md)
 
 ## 📊 监控和统计
 
