@@ -393,6 +393,11 @@ def index():
     """主页面"""
     return render_template('index.html')
 
+@app.route('/logs')
+def logs():
+    """日志页面"""
+    return render_template('logs.html')
+
 @app.route('/api/tasks', methods=['GET'])
 def get_tasks():
     """获取所有任务"""
