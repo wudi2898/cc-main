@@ -71,7 +71,7 @@ echo -e "${GREEN}✅ 相关进程已停止${NC}"
 
 # 删除之前的项目
 echo -e "${CYAN}🗑️  清理之前的项目...${NC}"
-rm -rf /tmp/cc-main-* 2>/dev/null || true
+rm -rf /tmp/cc-main* 2>/dev/null || true
 echo -e "${GREEN}✅ 清理完成${NC}"
 
 # 1. 首先克隆项目代码
@@ -79,12 +79,6 @@ echo -e "${CYAN}📥 获取项目代码...${NC}"
 
 # 创建项目目录
 PROJECT_DIR="/tmp/cc-main"
-
-# 删除旧目录
-if [ -d "$PROJECT_DIR" ]; then
-    echo -e "${YELLOW}🗑️  删除旧目录: $PROJECT_DIR${NC}"
-    rm -rf "$PROJECT_DIR"
-fi
 
 mkdir -p "$PROJECT_DIR"
 cd "$PROJECT_DIR"
