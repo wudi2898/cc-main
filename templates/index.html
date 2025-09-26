@@ -349,16 +349,12 @@
                 </div>
             </div>
 
-            <!-- 日志页面链接 -->
+            <!-- 日志页面按钮 -->
             <div class="col-lg-3">
-                <div class="card">
-                    <div class="card-body text-center">
-                        <h5><i class="fas fa-terminal"></i> 实时日志</h5>
-                        <p class="text-muted">点击任务查看日志或打开专门的日志页面</p>
-                        <a href="/logs" class="btn btn-primary">
-                            <i class="fas fa-external-link-alt"></i> 打开日志页面
-                        </a>
-                    </div>
+                <div class="d-grid">
+                    <a href="/logs" class="btn btn-primary btn-lg">
+                        <i class="fas fa-terminal"></i> 实时日志
+                    </a>
                 </div>
             </div>
         </div>
@@ -415,7 +411,7 @@
                                 </div>
                             </div>
                         </div>
-                        
+
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="form-check mb-3">
@@ -685,11 +681,11 @@
         fetch('/api/system/stats')
             .then(response => response.json())
             .then(stats => {
-                updateSystemStats(stats);
+            updateSystemStats(stats);
             })
             .catch(error => {
                 console.error('获取系统状态失败:', error);
-            });
+        });
 
         // 更新系统状态
         function updateSystemStats(stats) {
@@ -1011,25 +1007,6 @@
             });
         }
 
-        // 清空日志（简化版）
-        function clearLogs() {
-            // 这个函数保留用于兼容性，但实际功能已移到日志页面
-            console.log('日志功能已移至专门页面');
-        }
-
-        // 下载日志
-        function downloadLogs() {
-            const logs = document.getElementById('logs').textContent;
-            const blob = new Blob([logs], { type: 'text/plain' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `ddos_logs_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.txt`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-        }
     </script>
 </body>
 </html>
