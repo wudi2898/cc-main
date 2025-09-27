@@ -16,9 +16,9 @@ let chartData = {
     networkTx: []
 };
 
-// 每分钟数据聚合
-let minuteData = {
-    currentMinute: null,
+// 每5秒数据聚合
+let fiveSecondData = {
+    currentFiveSecond: null,
     cpu: [],
     memory: [],
     traffic: [],
@@ -28,7 +28,7 @@ let minuteData = {
 };
 
 // 最大数据点数量
-const MAX_DATA_POINTS = 60; // 保留最近60分钟的数据
+const MAX_DATA_POINTS = 360; // 保留最近30分钟的数据 (30*60/5=360)
 
 let currentTask = null;
 let autoRefreshInterval = null;
@@ -112,9 +112,10 @@ function initCharts() {
                 x: {
                     type: 'time',
                     time: {
-                        unit: 'minute',
+                        unit: 'second',
+                        stepSize: 5,
                         displayFormats: {
-                            minute: 'HH:mm'
+                            second: 'HH:mm:ss'
                         }
                     },
                     title: {
@@ -183,9 +184,10 @@ function initCharts() {
                 x: {
                     type: 'time',
                     time: {
-                        unit: 'minute',
+                        unit: 'second',
+                        stepSize: 5,
                         displayFormats: {
-                            minute: 'HH:mm'
+                            second: 'HH:mm:ss'
                         }
                     },
                     title: {
@@ -249,9 +251,10 @@ function initCharts() {
                 x: {
                     type: 'time',
                     time: {
-                        unit: 'minute',
+                        unit: 'second',
+                        stepSize: 5,
                         displayFormats: {
-                            minute: 'HH:mm'
+                            second: 'HH:mm:ss'
                         }
                     },
                     title: {
@@ -315,9 +318,10 @@ function initCharts() {
                 x: {
                     type: 'time',
                     time: {
-                        unit: 'minute',
+                        unit: 'second',
+                        stepSize: 5,
                         displayFormats: {
-                            minute: 'HH:mm'
+                            second: 'HH:mm:ss'
                         }
                     },
                     title: {
@@ -381,9 +385,10 @@ function initCharts() {
                 x: {
                     type: 'time',
                     time: {
-                        unit: 'minute',
+                        unit: 'second',
+                        stepSize: 5,
                         displayFormats: {
-                            minute: 'HH:mm'
+                            second: 'HH:mm:ss'
                         }
                     },
                     title: {
@@ -447,9 +452,10 @@ function initCharts() {
                 x: {
                     type: 'time',
                     time: {
-                        unit: 'minute',
+                        unit: 'second',
+                        stepSize: 5,
                         displayFormats: {
-                            minute: 'HH:mm'
+                            second: 'HH:mm:ss'
                         }
                     },
                     title: {
@@ -477,7 +483,7 @@ function initCharts() {
     console.log('图表初始化完成');
 }
 
-// 更新图表数据 - 每分钟聚合最大值
+// 更新图表数据 - 每5秒聚合最大值
 function updateCharts(serverStats, totalRequests) {
     console.log('更新图表数据:', { 
         serverStats, 
@@ -491,20 +497,20 @@ function updateCharts(serverStats, totalRequests) {
     
     // 获取当前时间
     const now = new Date();
-    const currentMinute = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours(), now.getMinutes());
+    const currentFiveSecond = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours(), now.getMinutes(), Math.floor(now.getSeconds() / 5) * 5);
     
-    // 如果是新的分钟，处理上一分钟的数据
-    if (minuteData.currentMinute && minuteData.currentMinute.getTime() !== currentMinute.getTime()) {
-        // 计算上一分钟的最大值
-        const maxCpu = Math.max(...minuteData.cpu);
-        const maxMemory = Math.max(...minuteData.memory);
-        const maxTraffic = Math.max(...minuteData.traffic);
-        const maxGoroutines = Math.max(...minuteData.goroutines);
-        const maxNetworkRx = Math.max(...minuteData.networkRx);
-        const maxNetworkTx = Math.max(...minuteData.networkTx);
+    // 如果是新的5秒间隔，处理上一个5秒的数据
+    if (fiveSecondData.currentFiveSecond && fiveSecondData.currentFiveSecond.getTime() !== currentFiveSecond.getTime()) {
+        // 计算上一个5秒的最大值
+        const maxCpu = Math.max(...fiveSecondData.cpu);
+        const maxMemory = Math.max(...fiveSecondData.memory);
+        const maxTraffic = Math.max(...fiveSecondData.traffic);
+        const maxGoroutines = Math.max(...fiveSecondData.goroutines);
+        const maxNetworkRx = Math.max(...fiveSecondData.networkRx);
+        const maxNetworkTx = Math.max(...fiveSecondData.networkTx);
         
         // 添加到图表数据
-        chartData.labels.push(minuteData.currentMinute);
+        chartData.labels.push(fiveSecondData.currentFiveSecond);
         chartData.cpu.push(maxCpu);
         chartData.memory.push(maxMemory);
         chartData.traffic.push(maxTraffic);
@@ -523,25 +529,25 @@ function updateCharts(serverStats, totalRequests) {
             chartData.networkTx.shift();
         }
         
-        // 重置当前分钟数据
-        minuteData.cpu = [];
-        minuteData.memory = [];
-        minuteData.traffic = [];
-        minuteData.goroutines = [];
-        minuteData.networkRx = [];
-        minuteData.networkTx = [];
+        // 重置当前5秒数据
+        fiveSecondData.cpu = [];
+        fiveSecondData.memory = [];
+        fiveSecondData.traffic = [];
+        fiveSecondData.goroutines = [];
+        fiveSecondData.networkRx = [];
+        fiveSecondData.networkTx = [];
     }
     
-    // 更新当前分钟
-    minuteData.currentMinute = currentMinute;
+    // 更新当前5秒
+    fiveSecondData.currentFiveSecond = currentFiveSecond;
     
-    // 添加当前数据到分钟聚合
-    minuteData.cpu.push(serverStats.cpu_usage);
-    minuteData.memory.push(serverStats.memory_usage);
-    minuteData.traffic.push(totalRequests);
-    minuteData.goroutines.push(serverStats.goroutines);
-    minuteData.networkRx.push(serverStats.network_rx);
-    minuteData.networkTx.push(serverStats.network_tx);
+    // 添加当前数据到5秒聚合
+    fiveSecondData.cpu.push(serverStats.cpu_usage);
+    fiveSecondData.memory.push(serverStats.memory_usage);
+    fiveSecondData.traffic.push(totalRequests);
+    fiveSecondData.goroutines.push(serverStats.goroutines);
+    fiveSecondData.networkRx.push(serverStats.network_rx);
+    fiveSecondData.networkTx.push(serverStats.network_tx);
     
     // 更新所有图表
     if (cpuChart) {
