@@ -418,14 +418,11 @@ func performAttack(config *Config) int {
 	}
 
 	var client *http.Client
-	var useProxy bool
 	if len(proxies) > 0 {
 		px := proxies[rand.Intn(len(proxies))]
 		client = createSOCKS5Client(px, config.Timeout)
-		useProxy = true
 	} else {
 		client = createDirectClient(config.Timeout)
-		useProxy = false
 	}
 
 	finalURL := buildFinalURL(baseURL, config)
