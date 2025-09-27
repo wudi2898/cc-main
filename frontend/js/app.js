@@ -17,7 +17,7 @@ let chartData = {
 };
 
 // 最大数据点数量
-const MAX_DATA_POINTS = 6000; // 保留最近6000个数据点
+const MAX_DATA_POINTS = 1000; // 保留最近1000个数据点，支持滚动查看
 
 let currentTask = null;
 let autoRefreshInterval = null;
@@ -54,7 +54,12 @@ function initCharts() {
     }
     
     // 注册 zoom 插件
-    Chart.register(ChartZoom);
+    if (typeof ChartZoom !== 'undefined') {
+        Chart.register(ChartZoom);
+        console.log('Zoom 插件已注册');
+    } else {
+        console.warn('Zoom 插件未加载');
+    }
     
     console.log('开始初始化图表...');
     
@@ -120,7 +125,8 @@ function initCharts() {
                 zoom: {
                     pan: {
                         enabled: true,
-                        mode: 'x'
+                        mode: 'x',
+                        modifierKey: null
                     },
                     zoom: {
                         wheel: {
@@ -206,7 +212,8 @@ function initCharts() {
                 zoom: {
                     pan: {
                         enabled: true,
-                        mode: 'x'
+                        mode: 'x',
+                        modifierKey: null
                     },
                     zoom: {
                         wheel: {
