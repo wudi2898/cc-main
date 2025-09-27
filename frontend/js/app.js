@@ -389,6 +389,9 @@ async function createTask() {
         cf_bypass: document.getElementById('cfBypass').checked,
         random_path: document.getElementById('randomPath').checked,
         random_params: document.getElementById('randomParams').checked,
+        schedule: document.getElementById('schedule').checked,
+        schedule_interval: parseInt(document.getElementById('scheduleInterval').value),
+        schedule_duration: parseInt(document.getElementById('scheduleDuration').value),
         status: document.getElementById('status').value
     };
 

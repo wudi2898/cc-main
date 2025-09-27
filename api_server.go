@@ -33,24 +33,27 @@ const (
 
 // 任务结构
 type Task struct {
-	ID           string     `json:"id"`
-	Name         string     `json:"name"`
-	TargetURL    string     `json:"target_url"`
-	Mode         string     `json:"mode"`
-	Threads      int        `json:"threads"`
-	RPS          int        `json:"rps"`
-	Duration     int        `json:"duration"`
-	Timeout      int        `json:"timeout"`
-	CFBypass     bool       `json:"cf_bypass"`
-	RandomPath   bool       `json:"random_path"`
-	RandomParams bool       `json:"random_params"`
-	Status       TaskStatus `json:"status"`
-	CreatedAt    time.Time  `json:"created_at"`
-	StartedAt    *time.Time `json:"started_at,omitempty"`
-	CompletedAt  *time.Time `json:"completed_at,omitempty"`
-	Process      *exec.Cmd  `json:"-"`
-	Logs         []string   `json:"logs"`
-	Stats        *TaskStats `json:"stats"`
+	ID               string     `json:"id"`
+	Name             string     `json:"name"`
+	TargetURL        string     `json:"target_url"`
+	Mode             string     `json:"mode"`
+	Threads          int        `json:"threads"`
+	RPS              int        `json:"rps"`
+	Duration         int        `json:"duration"`
+	Timeout          int        `json:"timeout"`
+	CFBypass         bool       `json:"cf_bypass"`
+	RandomPath       bool       `json:"random_path"`
+	RandomParams     bool       `json:"random_params"`
+	Schedule         bool       `json:"schedule"`
+	ScheduleInterval int        `json:"schedule_interval"`
+	ScheduleDuration int        `json:"schedule_duration"`
+	Status           TaskStatus `json:"status"`
+	CreatedAt        time.Time  `json:"created_at"`
+	StartedAt        *time.Time `json:"started_at,omitempty"`
+	CompletedAt      *time.Time `json:"completed_at,omitempty"`
+	Process          *exec.Cmd  `json:"-"`
+	Logs             []string   `json:"logs"`
+	Stats            *TaskStats `json:"stats"`
 }
 
 // 任务统计
@@ -237,6 +240,9 @@ func updateTask(w http.ResponseWriter, r *http.Request) {
 	task.CFBypass = updates.CFBypass
 	task.RandomPath = updates.RandomPath
 	task.RandomParams = updates.RandomParams
+	task.Schedule = updates.Schedule
+	task.ScheduleInterval = updates.ScheduleInterval
+	task.ScheduleDuration = updates.ScheduleDuration
 	
 	tasksMutex.Unlock()
 	
@@ -310,7 +316,7 @@ func startTask(w http.ResponseWriter, r *http.Request) {
 	}
 	
 	if task.Threads <= 0 {
-		task.Threads = 1000
+		task.Threads = 100
 	}
 	if task.RPS <= 0 {
 		task.RPS = 1000
@@ -453,6 +459,9 @@ func startTaskProcess(task *Task) {
 		"-cf-bypass", strconv.FormatBool(task.CFBypass),
 		"-random-path", strconv.FormatBool(task.RandomPath),
 		"-random-params", strconv.FormatBool(task.RandomParams),
+		"-schedule", strconv.FormatBool(task.Schedule),
+		"-schedule-interval", strconv.Itoa(task.ScheduleInterval),
+		"-schedule-duration", strconv.Itoa(task.ScheduleDuration),
 	)
 	
 	// 设置工作目录

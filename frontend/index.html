@@ -695,8 +695,8 @@
                                     <label class="form-label">
                                         <i class="bi bi-cpu-fill"></i> 线程数
                                     </label>
-                                    <input type="number" class="form-control" id="threads" value="10000" 
-                                           min="1" max="100000" placeholder="10000">
+                                    <input type="number" class="form-control" id="threads" value="100" 
+                                           min="1" max="100000" placeholder="100">
                                 </div>
                             </div>
                             <div class="col-md-3">
@@ -704,8 +704,8 @@
                                     <label class="form-label">
                                         <i class="bi bi-speedometer2"></i> RPS
                                     </label>
-                                    <input type="number" class="form-control" id="rps" value="50000" 
-                                           min="1" max="1000000" placeholder="50000">
+                                    <input type="number" class="form-control" id="rps" value="1000" 
+                                           min="1" max="1000000" placeholder="1000">
                                 </div>
                             </div>
                             <div class="col-md-3">
@@ -756,6 +756,37 @@
                                         <input class="form-check-input" type="checkbox" id="randomParams" checked>
                                         <label class="form-check-label">随机参数</label>
                                     </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">
+                                        <i class="bi bi-clock-history"></i> 定时执行
+                                    </label>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="schedule">
+                                        <label class="form-check-label">启用定时执行</label>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">
+                                        <i class="bi bi-arrow-repeat"></i> 执行间隔(分钟)
+                                    </label>
+                                    <input type="number" class="form-control" id="scheduleInterval" value="10" 
+                                           min="1" max="1440" placeholder="10">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">
+                                        <i class="bi bi-stopwatch"></i> 执行时长(分钟)
+                                    </label>
+                                    <input type="number" class="form-control" id="scheduleDuration" value="20" 
+                                           min="1" max="1440" placeholder="20">
                                 </div>
                             </div>
                         </div>
