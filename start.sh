@@ -106,11 +106,35 @@ echo ""
 echo -e "${GREEN}🚀 启动服务...${NC}"
 echo -e "${YELLOW}📱 前端地址: http://localhost:8080${NC}"
 echo -e "${YELLOW}🔗 API地址: http://localhost:8080/api${NC}"
-echo -e "${YELLOW}📊 日志页面: http://localhost:8080/logs.html${NC}"
 echo -e "${YELLOW}🛡️  CF绕过: 已启用${NC}"
 echo ""
-echo -e "${BLUE}按 Ctrl+C 停止服务${NC}"
-echo ""
 
-# 启动API服务器
-./api_server
+# 检查是否已有进程在运行
+if pgrep -f "api_server" > /dev/null; then
+    echo -e "${YELLOW}⚠️  检测到API服务器已在运行，正在停止...${NC}"
+    pkill -f "api_server"
+    sleep 2
+fi
+
+# 后台启动API服务器
+echo -e "${GREEN}🔄 后台启动API服务器...${NC}"
+nohup ./api_server > api_server.log 2>&1 &
+API_PID=$!
+
+# 等待服务启动
+sleep 3
+
+# 检查服务是否启动成功
+if ps -p $API_PID > /dev/null; then
+    echo -e "${GREEN}✅ API服务器启动成功，PID: $API_PID${NC}"
+    echo -e "${BLUE}📋 管理命令:${NC}"
+    echo -e "   查看日志: tail -f api_server.log"
+    echo -e "   停止服务: kill $API_PID"
+    echo -e "   查看进程: ps -p $API_PID"
+    echo ""
+    echo -e "${GREEN}🎉 服务已后台运行，可以关闭终端${NC}"
+else
+    echo -e "${RED}❌ API服务器启动失败${NC}"
+    echo -e "${YELLOW}📋 查看错误日志: cat api_server.log${NC}"
+    exit 1
+fi

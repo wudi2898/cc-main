@@ -277,6 +277,8 @@ WorkingDirectory=$PROJECT_DIR
 ExecStart=$PROJECT_DIR/api_server -port $PORT -tasks-file $TASKS_FILE
 Restart=always
 RestartSec=5
+StandardOutput=append:$PROJECT_DIR/api_server.log
+StandardError=append:$PROJECT_DIR/api_server.log
 
 [Install]
 WantedBy=multi-user.target
@@ -286,6 +288,7 @@ EOF
     echo -e "${GREEN}✅ 系统服务创建完成${NC}"
     echo -e "${BLUE}💡 使用 'sudo systemctl start cc-main' 启动服务${NC}"
     echo -e "${BLUE}💡 使用 'sudo systemctl enable cc-main' 设置开机自启${NC}"
+    echo -e "${BLUE}💡 使用 'sudo systemctl status cc-main' 查看服务状态${NC}"
 fi
 
 # 9. 获取服务器IP地址
@@ -298,20 +301,37 @@ echo -e "${YELLOW}📱 前端地址: http://$SERVER_IP:$PORT${NC}"
 echo -e "${YELLOW}🛡️  CF绕过: 已启用${NC}"
 echo -e "${YELLOW}📁 项目目录: $PROJECT_DIR${NC}"
 echo ""
-echo -e "${BLUE}按 Ctrl+C 停止服务${NC}"
-echo ""
 
-# 启动API服务器
-echo -e "${GREEN}🚀 启动API服务器...${NC}"
-echo -e "${BLUE}📊 任务文件: $TASKS_FILE${NC}"
-echo -e "${BLUE}🌐 服务地址: http://$SERVER_IP:$PORT${NC}"
-echo -e "${BLUE}📱 控制面板: http://$SERVER_IP:$PORT${NC}"
-echo -e "${BLUE}📋 日志页面: http://$SERVER_IP:$PORT/logs.html${NC}"
-echo ""
-echo -e "${YELLOW}💡 定时执行功能已启用，可在控制面板中配置${NC}"
-echo -e "${YELLOW}💡 默认配置：每10分钟执行一次，每次20分钟${NC}"
-echo ""
-echo -e "${BLUE}按 Ctrl+C 停止服务${NC}"
-echo ""
+# 检查是否已有进程在运行
+if pgrep -f "api_server" > /dev/null; then
+    echo -e "${YELLOW}⚠️  检测到API服务器已在运行，正在停止...${NC}"
+    pkill -f "api_server"
+    sleep 2
+fi
 
-./api_server -port "$PORT" -tasks-file "$TASKS_FILE"
+# 后台启动API服务器
+echo -e "${GREEN}🔄 后台启动API服务器...${NC}"
+nohup ./api_server -port "$PORT" -tasks-file "$TASKS_FILE" > api_server.log 2>&1 &
+API_PID=$!
+
+# 等待服务启动
+sleep 3
+
+# 检查服务是否启动成功
+if ps -p $API_PID > /dev/null; then
+    echo -e "${GREEN}✅ API服务器启动成功，PID: $API_PID${NC}"
+    echo -e "${BLUE}📊 任务文件: $TASKS_FILE${NC}"
+    echo -e "${BLUE}🌐 服务地址: http://$SERVER_IP:$PORT${NC}"
+    echo -e "${BLUE}📱 控制面板: http://$SERVER_IP:$PORT${NC}"
+    echo ""
+    echo -e "${BLUE}📋 管理命令:${NC}"
+    echo -e "   查看日志: tail -f api_server.log"
+    echo -e "   停止服务: kill $API_PID"
+    echo -e "   查看进程: ps -p $API_PID"
+    echo ""
+    echo -e "${GREEN}🎉 服务已后台运行，可以关闭终端${NC}"
+else
+    echo -e "${RED}❌ API服务器启动失败${NC}"
+    echo -e "${YELLOW}📋 查看错误日志: cat api_server.log${NC}"
+    exit 1
+fi
