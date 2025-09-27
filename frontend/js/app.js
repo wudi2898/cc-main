@@ -32,6 +32,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // 初始化图表
 function initCharts() {
+    // 检查 Chart 是否可用
+    if (typeof Chart === 'undefined') {
+        console.error('Chart.js 未正确加载');
+        showToast('图表库加载失败，请刷新页面重试', 'error');
+        return;
+    }
+    
     // CPU使用率图表 - 实时折线图
     const cpuCtx = document.getElementById('cpuChart').getContext('2d');
     cpuChart = new Chart(cpuCtx, {
