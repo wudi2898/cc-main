@@ -550,7 +550,6 @@ function editTask(taskId) {
     
     // 填充编辑表单
     document.getElementById('editTaskId').value = taskId;
-    document.getElementById('editTaskForm').innerHTML = document.getElementById('createTaskForm').innerHTML;
     
     // 填充数据
     const form = document.getElementById('editTaskForm');
