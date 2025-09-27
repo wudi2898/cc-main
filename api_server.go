@@ -83,6 +83,7 @@ type ServerStats struct {
 var (
 	tasks        = make(map[string]*Task)
 	tasksMutex   sync.RWMutex
+	tasksFile    = "/cc-tasks.json"
 	port         = "8080"
 	serverStats  = &ServerStats{StartTime: time.Now()}
 	lastRxBytes  uint64
@@ -258,9 +259,9 @@ func updateTask(w http.ResponseWriter, r *http.Request) {
 	tasksMutex.Unlock()
 	
 	// 保存任务列表
-		if err := saveTasks(); err != nil {
-			// 移除保存失败日志
-		}
+	if err := saveTasks(); err != nil {
+		// 移除保存失败日志
+	}
 	
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
@@ -296,9 +297,9 @@ func deleteTask(w http.ResponseWriter, r *http.Request) {
 	tasksMutex.Unlock()
 	
 	// 保存任务列表
-		if err := saveTasks(); err != nil {
-			// 移除保存失败日志
-		}
+	if err := saveTasks(); err != nil {
+		// 移除保存失败日志
+	}
 	
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.WriteHeader(http.StatusOK)
@@ -354,9 +355,9 @@ func startTask(w http.ResponseWriter, r *http.Request) {
 	tasksMutex.Unlock()
 	
 	// 保存任务列表
-		if err := saveTasks(); err != nil {
-			// 移除保存失败日志
-		}
+	if err := saveTasks(); err != nil {
+		// 移除保存失败日志
+	}
 	
 	// 移除任务启动成功日志
 	
@@ -646,7 +647,7 @@ func startTaskProcess(task *Task) {
 // 解析命令行参数
 func parseArgs() {
 	flag.StringVar(&port, "port", "8080", "服务器端口")
-	flag.StringVar(&tasksFile, "tasks-file", "./cc-tasks.json", "任务列表文件路径")
+	flag.StringVar(&tasksFile, "tasks-file", "/cc-tasks.json", "任务列表文件路径")
 	flag.Parse()
 }
 
