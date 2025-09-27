@@ -210,30 +210,30 @@ func executeAttack(config *Config, durationMinutes int) {
 		return
 	}
 	
-	// 高并发优化：使用更大的线程池
+	// 合理的线程池配置，避免系统资源耗尽
 	threads := config.Threads
 	if config.FireAndForget {
-		// 火后不理模式：支持亿万级并发
-		if threads < 100000 {
-			threads = 100000 // 最小10万个线程
-		}
-		if threads > 10000000 {
-			threads = 10000000 // 最大1000万个线程
-		}
-	} else {
-		// 普通模式
+		// 火后不理模式：适度并发
 		if threads < 1000 {
 			threads = 1000 // 最小1000个线程
 		}
-		if threads > 50000 {
-			threads = 50000 // 最大50000个线程
+		if threads > 100000 {
+			threads = 100000 // 最大10万个线程
+		}
+	} else {
+		// 普通模式
+		if threads < 100 {
+			threads = 100 // 最小100个线程
+		}
+		if threads > 10000 {
+			threads = 10000 // 最大1万个线程
 		}
 	}
 	
-	// 使用信号量控制并发，而不是简单的rate limiter
-	bufferSize := config.RPS * 2
-	if config.FireAndForget {
-		bufferSize = config.RPS * 10 // 火后不理模式使用更大缓冲区
+	// 使用信号量控制并发，避免资源耗尽
+	bufferSize := config.RPS
+	if bufferSize > 10000 {
+		bufferSize = 10000 // 限制最大缓冲区
 	}
 	semaphore := make(chan struct{}, bufferSize)
 	

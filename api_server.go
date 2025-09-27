@@ -582,14 +582,17 @@ func startTaskProcess(task *Task) {
 		err := cmd.Wait()
 		if err != nil {
 			task.Status = StatusFailed
-			task.Logs = append(task.Logs, fmt.Sprintf("进程异常退出: %v", err))
+			task.Logs = append(task.Logs, fmt.Sprintf("[%s] 进程异常退出: %v", time.Now().Format("15:04:05"), err))
 		} else {
 			task.Status = StatusCompleted
-			task.Logs = append(task.Logs, "任务完成")
+			task.Logs = append(task.Logs, fmt.Sprintf("[%s] 任务完成", time.Now().Format("15:04:05")))
 		}
 		
 		now := time.Now()
 		task.CompletedAt = &now
+		
+		// 清理进程引用
+		task.Process = nil
 	}()
 }
 
