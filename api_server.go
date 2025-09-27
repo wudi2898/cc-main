@@ -88,6 +88,8 @@ var (
 	lastRxBytes  uint64
 	lastTxBytes  uint64
 	lastNetTime  time.Time
+	schedulers   = make(map[string]*time.Ticker) // 定时任务调度器
+	schedulerMutex sync.RWMutex
 )
 
 func main() {
@@ -187,7 +189,13 @@ func createTask(w http.ResponseWriter, r *http.Request) {
 	
 	// 如果状态是running，立即启动
 	if task.Status == StatusRunning {
-		go startTaskProcess(&task)
+		if task.Schedule {
+			// 启动定时任务
+			go startScheduledTask(&task)
+		} else {
+			// 立即启动任务
+			go startTaskProcess(&task)
+		}
 	}
 	
 	w.Header().Set("Content-Type", "application/json")
@@ -276,6 +284,14 @@ func deleteTask(w http.ResponseWriter, r *http.Request) {
 		task.Process.Process.Kill()
 	}
 	
+	// 停止定时调度器
+	schedulerMutex.Lock()
+	if scheduler, ok := schedulers[taskId]; ok {
+		scheduler.Stop()
+		delete(schedulers, taskId)
+	}
+	schedulerMutex.Unlock()
+	
 	delete(tasks, taskId)
 	tasksMutex.Unlock()
 	
@@ -345,7 +361,13 @@ func startTask(w http.ResponseWriter, r *http.Request) {
 	// 移除任务启动成功日志
 	
 	// 启动任务进程
-	go startTaskProcess(task)
+	if task.Schedule {
+		// 启动定时任务
+		go startScheduledTask(task)
+	} else {
+		// 立即启动任务
+		go startTaskProcess(task)
+	}
 	
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
@@ -375,6 +397,14 @@ func stopTask(w http.ResponseWriter, r *http.Request) {
 		task.Process.Process.Kill()
 		task.Process = nil
 	}
+	
+	// 停止定时调度器
+	schedulerMutex.Lock()
+	if scheduler, ok := schedulers[taskId]; ok {
+		scheduler.Stop()
+		delete(schedulers, taskId)
+	}
+	schedulerMutex.Unlock()
 	
 	task.Status = StatusStopped
 	now := time.Now()
@@ -836,4 +866,73 @@ func updateNetworkStats() {
 	lastRxBytes = totalRx
 	lastTxBytes = totalTx
 	lastNetTime = now
+}
+
+// 启动定时任务
+func startScheduledTask(task *Task) {
+	if task.ScheduleInterval <= 0 {
+		task.Status = StatusFailed
+		task.Logs = append(task.Logs, fmt.Sprintf("[%s] 定时间隔必须大于0", time.Now().Format("15:04:05")))
+		return
+	}
+	
+	// 创建定时器
+	ticker := time.NewTicker(time.Duration(task.ScheduleInterval) * time.Minute)
+	
+	// 保存调度器
+	schedulerMutex.Lock()
+	schedulers[task.ID] = ticker
+	schedulerMutex.Unlock()
+	
+	// 添加启动日志
+	task.Logs = append(task.Logs, fmt.Sprintf("[%s] 启动定时任务: 每%d分钟执行一次，每次%d分钟", 
+		time.Now().Format("15:04:05"), task.ScheduleInterval, task.ScheduleDuration))
+	
+	// 立即执行一次
+	executeScheduledAttack(task)
+	
+	// 定时执行
+	for {
+		select {
+		case <-ticker.C:
+			// 检查任务是否还在运行
+			tasksMutex.RLock()
+			currentTask, exists := tasks[task.ID]
+			tasksMutex.RUnlock()
+			
+			if !exists || currentTask.Status != StatusRunning {
+				// 任务已停止，清理调度器
+				schedulerMutex.Lock()
+				if scheduler, ok := schedulers[task.ID]; ok {
+					scheduler.Stop()
+					delete(schedulers, task.ID)
+				}
+				schedulerMutex.Unlock()
+				return
+			}
+			
+			executeScheduledAttack(task)
+		}
+	}
+}
+
+// 执行定时攻击
+func executeScheduledAttack(task *Task) {
+	// 创建临时任务配置，使用定时持续时间
+	tempTask := *task
+	tempTask.Duration = task.ScheduleDuration * 60 // 转换为秒
+	
+	// 添加执行日志
+	task.Logs = append(task.Logs, fmt.Sprintf("[%s] 开始执行定时攻击，持续%d分钟", 
+		time.Now().Format("15:04:05"), task.ScheduleDuration))
+	
+	// 启动攻击进程
+	startTaskProcess(&tempTask)
+	
+	// 等待攻击完成
+	time.Sleep(time.Duration(task.ScheduleDuration) * time.Minute)
+	
+	// 添加完成日志
+	task.Logs = append(task.Logs, fmt.Sprintf("[%s] 定时攻击执行完成", 
+		time.Now().Format("15:04:05")))
 }
