@@ -144,7 +144,6 @@ function getToastTitle(type) {
 
 // 刷新任务列表
 async function refreshTasks() {
-    showLoading();
     try {
         const response = await fetch(API_BASE + '/tasks');
         if (!response.ok) {
@@ -158,8 +157,6 @@ async function refreshTasks() {
     } catch (error) {
         // 移除刷新任务失败日志
         showToast('刷新任务失败: ' + error.message, 'error');
-    } finally {
-        hideLoading();
     }
 }
 
