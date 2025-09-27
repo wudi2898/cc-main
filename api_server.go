@@ -424,6 +424,21 @@ func handleSSE(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Access-Control-Allow-Headers", "Cache-Control")
 
+	// 生成连接ID
+	connID := fmt.Sprintf("%p", w)
+	
+	// 注册连接
+	sseMutex.Lock()
+	sseConnections[connID] = w
+	sseMutex.Unlock()
+	
+	// 连接断开时清理
+	defer func() {
+		sseMutex.Lock()
+		delete(sseConnections, connID)
+		sseMutex.Unlock()
+	}()
+
 	// 发送初始任务状态
 	tasksMutex.RLock()
 	for _, task := range tasks {
@@ -683,10 +698,24 @@ func saveTasks() error {
 	return nil
 }
 
+// 全局SSE连接管理
+var sseConnections = make(map[string]http.ResponseWriter)
+var sseMutex sync.RWMutex
+
 // 发送SSE消息
 func sendSSEMessage(data map[string]interface{}) {
-	// 这里需要实现SSE消息广播机制
-	// 由于当前是简单的单连接实现，暂时跳过
+	jsonData, _ := json.Marshal(data)
+	message := fmt.Sprintf("data: %s\n\n", jsonData)
+	
+	sseMutex.RLock()
+	defer sseMutex.RUnlock()
+	
+	for _, conn := range sseConnections {
+		if flusher, ok := conn.(http.Flusher); ok {
+			fmt.Fprintf(conn, message)
+			flusher.Flush()
+		}
+	}
 }
 
 // 获取服务器性能统计

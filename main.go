@@ -449,26 +449,8 @@ func performAttack(config *Config) int {
 
 	resp, err := client.Do(req)
 	if err != nil {
-		// 如果使用代理失败，尝试直连
-		if useProxy {
-			fmt.Printf("🔄 代理失败，尝试直连: %v\n", err)
-			client = createDirectClient(config.Timeout)
-			resp, err = client.Do(req)
-		}
-		if err != nil {
-			if strings.Contains(err.Error(), "timeout") {
-				fmt.Printf("⏰ 请求超时: %v\n", err)
-			} else if strings.Contains(err.Error(), "connection refused") {
-				fmt.Printf("🚫 连接被拒绝: %v\n", err)
-			} else if strings.Contains(err.Error(), "no route to host") {
-				fmt.Printf("🛣️  无路由到主机: %v\n", err)
-			} else if strings.Contains(err.Error(), "no acceptable authentication methods") {
-				fmt.Printf("🔐 代理认证失败: %v\n", err)
-			} else {
-				fmt.Printf("❌ 请求失败: %v\n", err)
-			}
-			return 0
-		}
+		// 代理失败直接返回错误，不尝试直连
+		return 0
 	}
 	defer func() {
 		if resp != nil && resp.Body != nil {
