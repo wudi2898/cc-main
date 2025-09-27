@@ -39,8 +39,15 @@ function initCharts() {
         return;
     }
     
+    console.log('开始初始化图表...');
+    
     // CPU使用率图表 - 实时折线图
-    const cpuCtx = document.getElementById('cpuChart').getContext('2d');
+    const cpuElement = document.getElementById('cpuChart');
+    if (!cpuElement) {
+        console.error('找不到 cpuChart 元素');
+        return;
+    }
+    const cpuCtx = cpuElement.getContext('2d');
     cpuChart = new Chart(cpuCtx, {
         type: 'line',
         data: {
@@ -60,6 +67,7 @@ function initCharts() {
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            aspectRatio: 2,
             scales: {
                 y: {
                     beginAtZero: true,
@@ -78,12 +86,25 @@ function initCharts() {
                 legend: {
                     display: false
                 }
+            },
+            layout: {
+                padding: {
+                    top: 10,
+                    bottom: 10,
+                    left: 10,
+                    right: 10
+                }
             }
         }
     });
 
     // 内存使用率图表 - 实时折线图
-    const memoryCtx = document.getElementById('memoryChart').getContext('2d');
+    const memoryElement = document.getElementById('memoryChart');
+    if (!memoryElement) {
+        console.error('找不到 memoryChart 元素');
+        return;
+    }
+    const memoryCtx = memoryElement.getContext('2d');
     memoryChart = new Chart(memoryCtx, {
         type: 'line',
         data: {
@@ -103,6 +124,7 @@ function initCharts() {
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            aspectRatio: 2,
             scales: {
                 y: {
                     beginAtZero: true,
@@ -121,12 +143,25 @@ function initCharts() {
                 legend: {
                     display: false
                 }
+            },
+            layout: {
+                padding: {
+                    top: 10,
+                    bottom: 10,
+                    left: 10,
+                    right: 10
+                }
             }
         }
     });
 
     // 实时流量图表 - 折线图
-    const trafficCtx = document.getElementById('trafficChart').getContext('2d');
+    const trafficElement = document.getElementById('trafficChart');
+    if (!trafficElement) {
+        console.error('找不到 trafficChart 元素');
+        return;
+    }
+    const trafficCtx = trafficElement.getContext('2d');
     trafficChart = new Chart(trafficCtx, {
         type: 'line',
         data: {
@@ -146,6 +181,7 @@ function initCharts() {
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            aspectRatio: 2,
             scales: {
                 y: {
                     beginAtZero: true,
@@ -163,12 +199,25 @@ function initCharts() {
                 legend: {
                     display: false
                 }
+            },
+            layout: {
+                padding: {
+                    top: 10,
+                    bottom: 10,
+                    left: 10,
+                    right: 10
+                }
             }
         }
     });
 
     // Goroutines数量图表 - 折线图
-    const goroutinesCtx = document.getElementById('goroutinesChart').getContext('2d');
+    const goroutinesElement = document.getElementById('goroutinesChart');
+    if (!goroutinesElement) {
+        console.error('找不到 goroutinesChart 元素');
+        return;
+    }
+    const goroutinesCtx = goroutinesElement.getContext('2d');
     goroutinesChart = new Chart(goroutinesCtx, {
         type: 'line',
         data: {
@@ -188,6 +237,7 @@ function initCharts() {
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            aspectRatio: 2,
             scales: {
                 y: {
                     beginAtZero: true,
@@ -205,12 +255,25 @@ function initCharts() {
                 legend: {
                     display: false
                 }
+            },
+            layout: {
+                padding: {
+                    top: 10,
+                    bottom: 10,
+                    left: 10,
+                    right: 10
+                }
             }
         }
     });
 
     // 网络接收速度图表 - 折线图
-    const networkRxCtx = document.getElementById('networkRxChart').getContext('2d');
+    const networkRxElement = document.getElementById('networkRxChart');
+    if (!networkRxElement) {
+        console.error('找不到 networkRxChart 元素');
+        return;
+    }
+    const networkRxCtx = networkRxElement.getContext('2d');
     networkRxChart = new Chart(networkRxCtx, {
         type: 'line',
         data: {
@@ -230,6 +293,7 @@ function initCharts() {
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            aspectRatio: 2,
             scales: {
                 y: {
                     beginAtZero: true,
@@ -247,12 +311,25 @@ function initCharts() {
                 legend: {
                     display: false
                 }
+            },
+            layout: {
+                padding: {
+                    top: 10,
+                    bottom: 10,
+                    left: 10,
+                    right: 10
+                }
             }
         }
     });
 
     // 网络发送速度图表 - 折线图
-    const networkTxCtx = document.getElementById('networkTxChart').getContext('2d');
+    const networkTxElement = document.getElementById('networkTxChart');
+    if (!networkTxElement) {
+        console.error('找不到 networkTxChart 元素');
+        return;
+    }
+    const networkTxCtx = networkTxElement.getContext('2d');
     networkTxChart = new Chart(networkTxCtx, {
         type: 'line',
         data: {
@@ -272,6 +349,7 @@ function initCharts() {
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            aspectRatio: 2,
             scales: {
                 y: {
                     beginAtZero: true,
@@ -289,47 +367,85 @@ function initCharts() {
                 legend: {
                     display: false
                 }
+            },
+            layout: {
+                padding: {
+                    top: 10,
+                    bottom: 10,
+                    left: 10,
+                    right: 10
+                }
             }
         }
     });
+    
+    console.log('图表初始化完成');
 }
 
 // 更新图表数据 - 只显示当前实时数据
 function updateCharts(serverStats, totalRequests) {
+    console.log('更新图表数据:', { 
+        serverStats, 
+        totalRequests,
+        cpu_usage: serverStats.cpu_usage,
+        memory_usage: serverStats.memory_usage,
+        goroutines: serverStats.goroutines,
+        network_rx: serverStats.network_rx,
+        network_tx: serverStats.network_tx
+    });
+    
     // 更新CPU图表 - 折线图显示当前值
     if (cpuChart) {
         cpuChart.data.datasets[0].data = [serverStats.cpu_usage];
         cpuChart.update('none');
+        console.log('CPU图表已更新:', serverStats.cpu_usage);
+    } else {
+        console.error('cpuChart 未初始化');
     }
     
     // 更新内存图表 - 折线图显示当前值
     if (memoryChart) {
         memoryChart.data.datasets[0].data = [serverStats.memory_usage];
         memoryChart.update('none');
+        console.log('内存图表已更新:', serverStats.memory_usage);
+    } else {
+        console.error('memoryChart 未初始化');
     }
     
     // 更新流量图表 - 折线图显示当前值
     if (trafficChart) {
         trafficChart.data.datasets[0].data = [totalRequests];
         trafficChart.update('none');
+        console.log('流量图表已更新:', totalRequests);
+    } else {
+        console.error('trafficChart 未初始化');
     }
     
     // 更新Goroutines图表 - 折线图显示当前值
     if (goroutinesChart) {
         goroutinesChart.data.datasets[0].data = [serverStats.goroutines];
         goroutinesChart.update('none');
+        console.log('Goroutines图表已更新:', serverStats.goroutines);
+    } else {
+        console.error('goroutinesChart 未初始化');
     }
     
     // 更新网络接收速度图表 - 折线图显示当前值
     if (networkRxChart) {
         networkRxChart.data.datasets[0].data = [serverStats.network_rx];
         networkRxChart.update('none');
+        console.log('网络接收图表已更新:', serverStats.network_rx);
+    } else {
+        console.error('networkRxChart 未初始化');
     }
     
     // 更新网络发送速度图表 - 折线图显示当前值
     if (networkTxChart) {
         networkTxChart.data.datasets[0].data = [serverStats.network_tx];
         networkTxChart.update('none');
+        console.log('网络发送图表已更新:', serverStats.network_tx);
+    } else {
+        console.error('networkTxChart 未初始化');
     }
 }
 

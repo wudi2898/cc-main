@@ -741,8 +741,8 @@
         }
 
         .chart-card canvas {
-            width: 100%;
-            height: 200px;
+            max-width: 100%;
+            height: 200px !important;
             border-radius: 8px;
         }
         
@@ -889,27 +889,27 @@
         <div class="charts-container">
             <div class="chart-card">
                 <h4 class="chart-title">CPU使用率</h4>
-                <canvas id="cpuChart" width="400" height="200"></canvas>
+                <canvas id="cpuChart"></canvas>
             </div>
             <div class="chart-card">
                 <h4 class="chart-title">内存使用率</h4>
-                <canvas id="memoryChart" width="400" height="200"></canvas>
+                <canvas id="memoryChart"></canvas>
             </div>
             <div class="chart-card">
                 <h4 class="chart-title">实时流量</h4>
-                <canvas id="trafficChart" width="400" height="200"></canvas>
+                <canvas id="trafficChart"></canvas>
             </div>
             <div class="chart-card">
                 <h4 class="chart-title">Goroutines数量</h4>
-                <canvas id="goroutinesChart" width="400" height="200"></canvas>
+                <canvas id="goroutinesChart"></canvas>
             </div>
             <div class="chart-card">
                 <h4 class="chart-title">网络接收速度</h4>
-                <canvas id="networkRxChart" width="400" height="200"></canvas>
+                <canvas id="networkRxChart"></canvas>
             </div>
             <div class="chart-card">
                 <h4 class="chart-title">网络发送速度</h4>
-                <canvas id="networkTxChart" width="400" height="200"></canvas>
+                <canvas id="networkTxChart"></canvas>
             </div>
         </div>
         
