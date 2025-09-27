@@ -293,12 +293,12 @@
         }
 
         .task-card {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(20px);
-            border-radius: 16px;
-            padding: 1.5rem;
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            border-radius: 8px;
+            padding: 1rem;
             box-shadow: var(--shadow-md);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(40, 167, 69, 0.2);
             transition: all 0.3s ease;
             position: relative;
             overflow: hidden;
@@ -310,24 +310,19 @@
             top: 0;
             left: 0;
             right: 0;
-            height: 4px;
-            background: linear-gradient(90deg, var(--primary), var(--secondary));
-            opacity: 0;
-            transition: opacity 0.3s ease;
+            height: 2px;
+            background: #28a745;
+            opacity: 1;
         }
 
         .task-card:hover {
-            transform: translateY(-4px);
-            box-shadow: var(--shadow-xl);
-        }
-
-        .task-card:hover::before {
-            opacity: 1;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 15px rgba(40, 167, 69, 0.2);
         }
 
         .task-header {
             display: flex;
-            justify-content: between;
+            justify-content: space-between;
             align-items: flex-start;
             margin-bottom: 1rem;
         }
@@ -348,11 +343,11 @@
             letter-spacing: 0.5px;
         }
 
-        .status-pending { background: rgba(156, 163, 175, 0.1); color: var(--gray-600); }
-        .status-running { background: rgba(16, 185, 129, 0.1); color: var(--success); }
-        .status-completed { background: rgba(99, 102, 241, 0.1); color: var(--primary); }
-        .status-failed { background: rgba(239, 68, 68, 0.1); color: var(--danger); }
-        .status-stopped { background: rgba(245, 158, 11, 0.1); color: var(--warning); }
+        .status-pending { background: rgba(40, 167, 69, 0.1); color: #28a745; }
+        .status-running { background: rgba(40, 167, 69, 0.2); color: #1e7e34; }
+        .status-completed { background: rgba(40, 167, 69, 0.15); color: #28a745; }
+        .status-failed { background: rgba(40, 167, 69, 0.1); color: #6c757d; }
+        .status-stopped { background: rgba(40, 167, 69, 0.1); color: #6c757d; }
 
         .task-info {
             margin-bottom: 1rem;

@@ -213,6 +213,9 @@ function createTaskCard(task) {
                         <i class="bi bi-${statusIcon}"></i> ${statusText}
                     </span>
                 </div>
+                <button class="btn btn-sm btn-outline-secondary" onclick="deleteTask('${task.id}')" title="删除任务" style="padding: 0.25rem 0.5rem; border: none; background: none; color: #6c757d;">
+                    <i class="bi bi-x-lg"></i>
+                </button>
             </div>
             
             <div class="task-info">
@@ -279,9 +282,6 @@ function createTaskCard(task) {
                 </button>
                 <button class="btn btn-primary btn-sm" onclick="editTask('${task.id}')" title="编辑任务">
                     <i class="bi bi-pencil-fill"></i> 编辑
-                </button>
-                <button class="btn btn-danger btn-sm" onclick="deleteTask('${task.id}')" title="删除任务">
-                    <i class="bi bi-trash-fill"></i> 删除
                 </button>
             </div>
         </div>
