@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"context"
 	"crypto/tls"
-	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
@@ -763,16 +762,6 @@ func statsReporter() {
 		}
 
 		// 移除实时统计输出
-
-		statsJSON := map[string]interface{}{
-			"total_requests":      stats.TotalRequests,
-			"successful_requests": stats.SuccessfulReqs,
-			"failed_requests":     stats.FailedReqs,
-			"current_rps":         stats.CurrentRPS,
-			"avg_rps":             stats.AvgRPS,
-			"uptime":              uptime,
-		}
-		// 移除JSON统计输出
 
 		stats.mu.Unlock()
 	}
