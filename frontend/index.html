@@ -7,53 +7,374 @@
     <link href="css/bootstrap.min.css" rel="stylesheet">
     <link href="css/bootstrap-icons.css" rel="stylesheet">
     <style>
-        .task-card {
-            transition: all 0.3s ease;
-            border-left: 4px solid #007bff;
+        :root {
+            --primary-color: #667eea;
+            --secondary-color: #764ba2;
+            --success-color: #28a745;
+            --warning-color: #ffc107;
+            --danger-color: #dc3545;
+            --info-color: #17a2b8;
+            --dark-color: #343a40;
+            --light-color: #f8f9fa;
         }
-        .task-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
-        .status-badge {
-            font-size: 0.8rem;
-            padding: 0.25rem 0.5rem;
+
+        .navbar {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%) !important;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
+
+        .navbar-brand {
+            font-weight: 600;
+            font-size: 1.3rem;
+        }
+
         .stats-card {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
             color: white;
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
         }
-        .btn-action {
-            margin: 0 2px;
+
+        .stats-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
         }
-        .log-container {
-            max-height: 400px;
-            overflow-y: auto;
-            background: #f8f9fa;
-            border-radius: 0.375rem;
-            padding: 1rem;
+
+        .stats-card:hover::before {
+            left: 100%;
         }
-        .log-entry {
-            font-family: 'Courier New', monospace;
+
+        .stats-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(102, 126, 234, 0.4);
+        }
+
+        .stats-card .card-body {
+            position: relative;
+            z-index: 1;
+        }
+
+        .stats-card h2 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin: 0;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .stats-card h5 {
             font-size: 0.9rem;
+            opacity: 0.9;
             margin-bottom: 0.5rem;
-            padding: 0.25rem 0.5rem;
-            border-radius: 0.25rem;
         }
-        .log-info { background-color: #d1ecf1; color: #0c5460; }
-        .log-success { background-color: #d4edda; color: #155724; }
-        .log-warning { background-color: #fff3cd; color: #856404; }
-        .log-error { background-color: #f8d7da; color: #721c24; }
+
+        .task-card {
+            background: white;
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .task-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: var(--primary-color);
+            transition: width 0.3s ease;
+        }
+
+        .task-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+        }
+
+        .task-card:hover::before {
+            width: 8px;
+        }
+
+        .task-card .card-body {
+            padding: 1.5rem;
+        }
+
+        .status-badge {
+            font-size: 0.75rem;
+            padding: 0.4rem 0.8rem;
+            border-radius: 20px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-action {
+            margin: 0 3px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            padding: 0.4rem 0.8rem;
+            transition: all 0.2s ease;
+        }
+
+        .btn-action:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            border: none;
+            border-radius: 10px;
+            padding: 0.6rem 1.5rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, var(--success-color) 0%, #20c997 100%);
+            border: none;
+            border-radius: 10px;
+            padding: 0.6rem 1.5rem;
+            font-weight: 500;
+        }
+
         .loading {
             display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 9999;
         }
+
         .loading.show {
             display: block;
         }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 9998;
+            display: none;
+        }
+
+        .loading-overlay.show {
+            display: block;
+        }
+
+        .modal-content {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: white;
+            border-radius: 15px 15px 0 0;
+            border: none;
+        }
+
+        .modal-header .btn-close {
+            filter: invert(1);
+        }
+
+        .form-control, .form-select {
+            border-radius: 8px;
+            border: 2px solid #e9ecef;
+            transition: all 0.3s ease;
+        }
+
+        .form-control:focus, .form-select:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+        }
+
+        .form-check-input:checked {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: #6c757d;
+        }
+
+        .empty-state i {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        .task-info {
+            font-size: 0.9rem;
+            color: #6c757d;
+            line-height: 1.4;
+        }
+
+        .task-info strong {
+            color: var(--dark-color);
+        }
+
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 10000;
+        }
+
+        .toast {
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+
+        .progress-ring {
+            width: 60px;
+            height: 60px;
+        }
+
+        .progress-ring circle {
+            fill: transparent;
+            stroke: var(--primary-color);
+            stroke-width: 4;
+            stroke-linecap: round;
+            transform: rotate(-90deg);
+            transform-origin: 50% 50%;
+        }
+
+        .progress-ring .progress-ring-fill {
+            stroke-dasharray: 188.4;
+            stroke-dashoffset: 188.4;
+            transition: stroke-dashoffset 0.3s ease;
+        }
+
+        .navbar-nav .nav-link {
+            color: rgba(255,255,255,0.9) !important;
+            transition: all 0.3s ease;
+            border-radius: 8px;
+            padding: 0.5rem 1rem !important;
+        }
+
+        .navbar-nav .nav-link:hover {
+            color: white !important;
+            background: rgba(255,255,255,0.1);
+        }
+
+        .container {
+            max-width: 1200px;
+        }
+
+        .card-title {
+            font-weight: 600;
+            color: var(--dark-color);
+        }
+
+        .text-muted {
+            color: #6c757d !important;
+        }
+
+        .badge {
+            font-weight: 500;
+        }
+
+        .btn-group .btn {
+            border-radius: 8px;
+        }
+
+        .btn-group .btn:not(:last-child) {
+            margin-right: 0.25rem;
+        }
+
+        .form-label {
+            font-weight: 500;
+            color: var(--dark-color);
+            margin-bottom: 0.5rem;
+        }
+
+        .mb-3 {
+            margin-bottom: 1rem !important;
+        }
+
+        .row {
+            margin-bottom: 1rem;
+        }
+
+        .col-md-3, .col-md-4, .col-md-6, .col-12 {
+            margin-bottom: 1rem;
+        }
+
+        @media (max-width: 768px) {
+            .stats-card h2 {
+                font-size: 2rem;
+            }
+            
+            .task-card .card-body {
+                padding: 1rem;
+            }
+            
+            .btn-action {
+                font-size: 0.8rem;
+                padding: 0.3rem 0.6rem;
+            }
+        }
     </style>
 </head>
-<body class="bg-light">
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+<body>
+    <!-- 加载遮罩 -->
+    <div class="loading-overlay" id="loadingOverlay"></div>
+    
+    <!-- Toast 容器 -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <nav class="navbar navbar-expand-lg navbar-dark">
         <div class="container">
             <a class="navbar-brand" href="#">
                 <i class="bi bi-lightning-charge"></i> CC压力测试控制面板
@@ -70,33 +391,41 @@
         <!-- 统计卡片 -->
         <div class="row mb-4">
             <div class="col-md-3">
-                <div class="card stats-card">
+                <div class="card stats-card fade-in">
                     <div class="card-body text-center">
-                        <h5 class="card-title">总任务数</h5>
-                        <h2 id="totalTasks">0</h2>
+                        <h5 class="card-title">
+                            <i class="bi bi-list-task"></i> 总任务数
+                        </h5>
+                        <h2 id="totalTasks" class="pulse">0</h2>
                     </div>
                 </div>
             </div>
             <div class="col-md-3">
-                <div class="card stats-card">
+                <div class="card stats-card fade-in">
                     <div class="card-body text-center">
-                        <h5 class="card-title">运行中</h5>
+                        <h5 class="card-title">
+                            <i class="bi bi-play-circle"></i> 运行中
+                        </h5>
                         <h2 id="runningTasks">0</h2>
                     </div>
                 </div>
             </div>
             <div class="col-md-3">
-                <div class="card stats-card">
+                <div class="card stats-card fade-in">
                     <div class="card-body text-center">
-                        <h5 class="card-title">已完成</h5>
+                        <h5 class="card-title">
+                            <i class="bi bi-check-circle"></i> 已完成
+                        </h5>
                         <h2 id="completedTasks">0</h2>
                     </div>
                 </div>
             </div>
             <div class="col-md-3">
-                <div class="card stats-card">
+                <div class="card stats-card fade-in">
                     <div class="card-body text-center">
-                        <h5 class="card-title">失败</h5>
+                        <h5 class="card-title">
+                            <i class="bi bi-x-circle"></i> 失败
+                        </h5>
                         <h2 id="failedTasks">0</h2>
                     </div>
                 </div>
@@ -106,14 +435,16 @@
         <!-- 操作按钮 -->
         <div class="row mb-4">
             <div class="col-12">
-                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createTaskModal">
-                    <i class="bi bi-plus-circle"></i> 创建新任务
-                </button>
-                <button class="btn btn-success" onclick="refreshTasks()">
-                    <i class="bi bi-arrow-clockwise"></i> 刷新
-                </button>
-                <div class="loading spinner-border text-primary" role="status">
-                    <span class="visually-hidden">加载中...</span>
+                <div class="d-flex gap-2 flex-wrap">
+                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createTaskModal">
+                        <i class="bi bi-plus-circle"></i> 创建新任务
+                    </button>
+                    <button class="btn btn-success" onclick="refreshTasks()">
+                        <i class="bi bi-arrow-clockwise"></i> 刷新
+                    </button>
+                    <button class="btn btn-outline-secondary" onclick="exportTasks()">
+                        <i class="bi bi-download"></i> 导出
+                    </button>
                 </div>
             </div>
         </div>
@@ -126,10 +457,12 @@
 
     <!-- 创建任务模态框 -->
     <div class="modal fade" id="createTaskModal" tabindex="-1">
-        <div class="modal-dialog modal-lg">
+        <div class="modal-dialog modal-xl">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">创建新任务</h5>
+                    <h5 class="modal-title">
+                        <i class="bi bi-plus-circle"></i> 创建新任务
+                    </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
@@ -137,21 +470,29 @@
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label class="form-label">任务名称</label>
-                                    <input type="text" class="form-control" id="taskName" required>
+                                    <label class="form-label">
+                                        <i class="bi bi-tag"></i> 任务名称
+                                    </label>
+                                    <input type="text" class="form-control" id="taskName" required 
+                                           placeholder="请输入任务名称">
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label class="form-label">目标URL</label>
-                                    <input type="url" class="form-control" id="targetURL" required>
+                                    <label class="form-label">
+                                        <i class="bi bi-link-45deg"></i> 目标URL
+                                    </label>
+                                    <input type="url" class="form-control" id="targetURL" required 
+                                           placeholder="https://example.com">
                                 </div>
                             </div>
                         </div>
                         <div class="row">
-                            <div class="col-md-4">
+                            <div class="col-md-3">
                                 <div class="mb-3">
-                                    <label class="form-label">攻击模式</label>
+                                    <label class="form-label">
+                                        <i class="bi bi-gear"></i> 攻击模式
+                                    </label>
                                     <select class="form-select" id="attackMode">
                                         <option value="get">GET</option>
                                         <option value="post" selected>POST</option>
@@ -159,63 +500,84 @@
                                     </select>
                                 </div>
                             </div>
-                            <div class="col-md-4">
+                            <div class="col-md-3">
                                 <div class="mb-3">
-                                    <label class="form-label">线程数</label>
-                                    <input type="number" class="form-control" id="threads" value="10000" min="1" max="100000">
+                                    <label class="form-label">
+                                        <i class="bi bi-cpu"></i> 线程数
+                                    </label>
+                                    <input type="number" class="form-control" id="threads" value="10000" 
+                                           min="1" max="100000" placeholder="10000">
                                 </div>
                             </div>
-                            <div class="col-md-4">
+                            <div class="col-md-3">
                                 <div class="mb-3">
-                                    <label class="form-label">RPS</label>
-                                    <input type="number" class="form-control" id="rps" value="50000" min="1" max="1000000">
+                                    <label class="form-label">
+                                        <i class="bi bi-speedometer2"></i> RPS
+                                    </label>
+                                    <input type="number" class="form-control" id="rps" value="50000" 
+                                           min="1" max="1000000" placeholder="50000">
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="mb-3">
+                                    <label class="form-label">
+                                        <i class="bi bi-clock"></i> 持续时间(秒)
+                                    </label>
+                                    <input type="number" class="form-control" id="duration" value="3600" 
+                                           min="1" max="86400" placeholder="3600">
                                 </div>
                             </div>
                         </div>
                         <div class="row">
                             <div class="col-md-4">
                                 <div class="mb-3">
-                                    <label class="form-label">持续时间(秒)</label>
-                                    <input type="number" class="form-control" id="duration" value="3600" min="1" max="86400">
+                                    <label class="form-label">
+                                        <i class="bi bi-hourglass-split"></i> 超时时间(秒)
+                                    </label>
+                                    <input type="number" class="form-control" id="timeout" value="30" 
+                                           min="1" max="300" placeholder="30">
                                 </div>
                             </div>
                             <div class="col-md-4">
                                 <div class="mb-3">
-                                    <label class="form-label">超时时间(秒)</label>
-                                    <input type="number" class="form-control" id="timeout" value="30" min="1" max="300">
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="mb-3">
-                                    <label class="form-label">状态</label>
+                                    <label class="form-label">
+                                        <i class="bi bi-play-circle"></i> 启动状态
+                                    </label>
                                     <select class="form-select" id="status">
                                         <option value="pending">待启动</option>
                                         <option value="running">立即启动</option>
                                     </select>
                                 </div>
                             </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-12">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" id="cfBypass" checked>
-                                    <label class="form-check-label">启用CF绕过</label>
-                                </div>
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" id="randomPath" checked>
-                                    <label class="form-check-label">随机路径</label>
-                                </div>
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" id="randomParams" checked>
-                                    <label class="form-check-label">随机参数</label>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">
+                                        <i class="bi bi-shield-check"></i> 高级选项
+                                    </label>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="cfBypass" checked>
+                                        <label class="form-check-label">CF绕过</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="randomPath" checked>
+                                        <label class="form-check-label">随机路径</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="randomParams" checked>
+                                        <label class="form-check-label">随机参数</label>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </form>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                    <button type="button" class="btn btn-primary" onclick="createTask()">创建任务</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="bi bi-x-circle"></i> 取消
+                    </button>
+                    <button type="button" class="btn btn-primary" onclick="createTask()">
+                        <i class="bi bi-check-circle"></i> 创建任务
+                    </button>
                 </div>
             </div>
         </div>
@@ -223,10 +585,12 @@
 
     <!-- 编辑任务模态框 -->
     <div class="modal fade" id="editTaskModal" tabindex="-1">
-        <div class="modal-dialog modal-lg">
+        <div class="modal-dialog modal-xl">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">编辑任务</h5>
+                    <h5 class="modal-title">
+                        <i class="bi bi-pencil"></i> 编辑任务
+                    </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
@@ -236,10 +600,21 @@
                     </form>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                    <button type="button" class="btn btn-primary" onclick="updateTask()">保存修改</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="bi bi-x-circle"></i> 取消
+                    </button>
+                    <button type="button" class="btn btn-primary" onclick="updateTask()">
+                        <i class="bi bi-check-circle"></i> 保存修改
+                    </button>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- 加载动画 -->
+    <div class="loading" id="loadingSpinner">
+        <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+            <span class="visually-hidden">加载中...</span>
         </div>
     </div>
 
