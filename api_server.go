@@ -128,15 +128,6 @@ func main() {
 	// 启动性能监控
 	go updateServerStats()
 	
-	// 获取服务器IP地址
-	serverIP := "localhost"
-	if output, err := exec.Command("hostname", "-I").Output(); err == nil && len(output) > 0 {
-		ips := strings.Fields(string(output))
-		if len(ips) > 0 {
-			serverIP = ips[0]
-		}
-	}
-	
 	// 移除服务器启动信息输出
 	
 	log.Fatal(http.ListenAndServe(":"+port, r))
