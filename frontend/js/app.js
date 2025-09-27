@@ -84,13 +84,11 @@ function startAutoRefresh() {
 // 显示加载状态
 function showLoading() {
     document.getElementById('loadingOverlay').classList.add('show');
-    document.getElementById('loadingSpinner').classList.add('show');
 }
 
 // 隐藏加载状态
 function hideLoading() {
     document.getElementById('loadingOverlay').classList.remove('show');
-    document.getElementById('loadingSpinner').classList.remove('show');
 }
 
 // 显示Toast消息
@@ -126,12 +124,12 @@ function showToast(message, type = 'info') {
 // 获取Toast图标
 function getToastIcon(type) {
     const icons = {
-        'success': 'check-circle',
-        'error': 'x-circle',
-        'warning': 'exclamation-triangle',
-        'info': 'info-circle'
+        'success': 'check-circle-fill',
+        'error': 'x-circle-fill',
+        'warning': 'exclamation-triangle-fill',
+        'info': 'info-circle-fill'
     };
-    return icons[type] || 'info-circle';
+    return icons[type] || 'info-circle-fill';
 }
 
 // 获取Toast标题
@@ -174,15 +172,15 @@ function renderTasks() {
     if (!tasks || tasks.length === 0) {
         container.innerHTML = `
             <div class="col-12">
-                <div class="card task-card">
-                    <div class="card-body empty-state">
+                <div class="empty-state">
+                    <div class="empty-state-icon">
                         <i class="bi bi-inbox"></i>
-                        <h5>暂无任务</h5>
-                        <p>点击"创建新任务"按钮开始创建第一个任务</p>
-                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createTaskModal">
-                            <i class="bi bi-plus-circle"></i> 创建新任务
-                        </button>
                     </div>
+                    <div class="empty-state-title">暂无任务</div>
+                    <div class="empty-state-text">点击"创建新任务"按钮开始创建第一个任务</div>
+                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createTaskModal">
+                        <i class="bi bi-plus-circle-fill"></i> 创建新任务
+                    </button>
                 </div>
             </div>
         `;
@@ -199,78 +197,112 @@ function renderTasks() {
 // 创建任务卡片
 function createTaskCard(task) {
     const div = document.createElement('div');
-    div.className = 'col-md-6 col-lg-4 mb-3 fade-in';
+    div.className = 'fade-in-up';
     
-    const statusColor = getStatusColor(task.status);
+    const statusClass = getStatusClass(task.status);
+    const statusText = getStatusText(task.status);
     const statusIcon = getStatusIcon(task.status);
-    const progress = calculateProgress(task);
     
     div.innerHTML = `
-        <div class="card task-card">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start mb-3">
-                    <h6 class="card-title mb-0">${escapeHtml(task.name)}</h6>
-                    <span class="badge status-badge bg-${statusColor}">
-                        <i class="bi bi-${statusIcon}"></i> ${getStatusText(task.status)}
+        <div class="task-card">
+            <div class="task-header">
+                <div>
+                    <div class="task-title">${escapeHtml(task.name)}</div>
+                    <span class="task-status ${statusClass}">
+                        <i class="bi bi-${statusIcon}"></i> ${statusText}
                     </span>
                 </div>
-                
-                <div class="task-info mb-3">
-                    <div class="mb-2">
-                        <strong>目标:</strong> ${escapeHtml(task.target_url)}
-                    </div>
-                    <div class="mb-2">
-                        <strong>模式:</strong> ${task.mode.toUpperCase()}
-                    </div>
-                    <div class="mb-2">
-                        <strong>配置:</strong> ${task.threads.toLocaleString()} 线程 | ${task.rps.toLocaleString()} RPS
-                    </div>
-                    <div class="mb-2">
-                        <strong>创建时间:</strong> ${formatDateTime(task.created_at)}
-                    </div>
-                    ${task.started_at ? `<div class="mb-2"><strong>开始时间:</strong> ${formatDateTime(task.started_at)}</div>` : ''}
+            </div>
+            
+            <div class="task-info">
+                <div class="task-info-item">
+                    <span class="task-info-label">目标:</span>
+                    <span class="task-info-value">${escapeHtml(task.target_url)}</span>
                 </div>
-                
-                ${task.stats ? `
-                    <div class="row mb-3">
-                        <div class="col-6">
-                            <small class="text-muted">总请求</small>
-                            <div class="fw-bold">${(task.stats.total_requests || 0).toLocaleString()}</div>
-                        </div>
-                        <div class="col-6">
-                            <small class="text-muted">成功率</small>
-                            <div class="fw-bold text-${task.stats.successful_requests > 0 ? 'success' : 'danger'}">
-                                ${calculateSuccessRate(task.stats)}%
-                            </div>
-                        </div>
+                <div class="task-info-item">
+                    <span class="task-info-label">模式:</span>
+                    <span class="task-info-value">${task.mode.toUpperCase()}</span>
+                </div>
+                <div class="task-info-item">
+                    <span class="task-info-label">配置:</span>
+                    <span class="task-info-value">${task.threads.toLocaleString()} 线程 | ${task.rps.toLocaleString()} RPS</span>
+                </div>
+                <div class="task-info-item">
+                    <span class="task-info-label">创建时间:</span>
+                    <span class="task-info-value">${formatDateTime(task.created_at)}</span>
+                </div>
+                ${task.started_at ? `
+                    <div class="task-info-item">
+                        <span class="task-info-label">开始时间:</span>
+                        <span class="task-info-value">${formatDateTime(task.started_at)}</span>
                     </div>
                 ` : ''}
-                
-                <div class="d-flex justify-content-between align-items-center">
-                    <div class="btn-group" role="group">
-                        ${task.status === 'running' ? 
-                            `<button class="btn btn-warning btn-sm btn-action" onclick="stopTask('${task.id}')" title="停止任务">
-                                <i class="bi bi-stop-circle"></i>
-                            </button>` :
-                            `<button class="btn btn-success btn-sm btn-action" onclick="startTask('${task.id}')" title="启动任务">
-                                <i class="bi bi-play-circle"></i>
-                            </button>`
-                        }
-                        <button class="btn btn-info btn-sm btn-action" onclick="viewLogs('${task.id}')" title="查看日志">
-                            <i class="bi bi-journal-text"></i>
-                        </button>
-                        <button class="btn btn-primary btn-sm btn-action" onclick="editTask('${task.id}')" title="编辑任务">
-                            <i class="bi bi-pencil"></i>
-                        </button>
-                        <button class="btn btn-danger btn-sm btn-action" onclick="deleteTask('${task.id}')" title="删除任务">
-                            <i class="bi bi-trash"></i>
-                        </button>
+            </div>
+            
+            ${task.stats ? `
+                <div class="task-stats">
+                    <div class="task-stats-grid">
+                        <div class="task-stat">
+                            <div class="task-stat-value">${(task.stats.total_requests || 0).toLocaleString()}</div>
+                            <div class="task-stat-label">总请求</div>
+                        </div>
+                        <div class="task-stat">
+                            <div class="task-stat-value text-${task.stats.successful_requests > 0 ? 'success' : 'danger'}">
+                                ${calculateSuccessRate(task.stats)}%
+                            </div>
+                            <div class="task-stat-label">成功率</div>
+                        </div>
+                        <div class="task-stat">
+                            <div class="task-stat-value">${(task.stats.current_rps || 0).toFixed(0)}</div>
+                            <div class="task-stat-label">当前RPS</div>
+                        </div>
+                        <div class="task-stat">
+                            <div class="task-stat-value">${(task.stats.avg_rps || 0).toFixed(0)}</div>
+                            <div class="task-stat-label">平均RPS</div>
+                        </div>
                     </div>
                 </div>
+            ` : ''}
+            
+            <div class="task-actions">
+                ${task.status === 'running' ? 
+                    `<button class="btn btn-warning btn-sm" onclick="stopTask('${task.id}')" title="停止任务">
+                        <i class="bi bi-stop-circle-fill"></i> 停止
+                    </button>` :
+                    `<button class="btn btn-success btn-sm" onclick="startTask('${task.id}')" title="启动任务">
+                        <i class="bi bi-play-circle-fill"></i> 启动
+                    </button>`
+                }
+                <button class="btn btn-info btn-sm" onclick="viewLogs('${task.id}')" title="查看日志">
+                    <i class="bi bi-journal-text"></i> 日志
+                </button>
+                <button class="btn btn-primary btn-sm" onclick="editTask('${task.id}')" title="编辑任务">
+                    <i class="bi bi-pencil-fill"></i> 编辑
+                </button>
+                <button class="btn btn-danger btn-sm" onclick="deleteTask('${task.id}')" title="删除任务">
+                    <i class="bi bi-trash-fill"></i> 删除
+                </button>
             </div>
         </div>
     `;
     return div;
+}
+
+// 获取状态样式类
+function getStatusClass(status) {
+    return `status-${status}`;
+}
+
+// 获取状态图标
+function getStatusIcon(status) {
+    const icons = {
+        'pending': 'clock-fill',
+        'running': 'play-circle-fill',
+        'completed': 'check-circle-fill',
+        'failed': 'x-circle-fill',
+        'stopped': 'pause-circle-fill'
+    };
+    return icons[status] || 'question-circle-fill';
 }
 
 // 计算成功率
@@ -279,18 +311,6 @@ function calculateSuccessRate(stats) {
         return 0;
     }
     return ((stats.successful_requests / stats.total_requests) * 100).toFixed(1);
-}
-
-// 计算进度
-function calculateProgress(task) {
-    if (!task.started_at || !task.duration) {
-        return 0;
-    }
-    const startTime = new Date(task.started_at);
-    const now = new Date();
-    const elapsed = (now - startTime) / 1000;
-    const progress = Math.min((elapsed / task.duration) * 100, 100);
-    return Math.max(0, progress);
 }
 
 // 格式化日期时间
@@ -305,30 +325,6 @@ function formatDateTime(dateString) {
         minute: '2-digit',
         second: '2-digit'
     });
-}
-
-// 获取状态颜色
-function getStatusColor(status) {
-    const colors = {
-        'pending': 'secondary',
-        'running': 'success',
-        'completed': 'primary',
-        'failed': 'danger',
-        'stopped': 'warning'
-    };
-    return colors[status] || 'secondary';
-}
-
-// 获取状态图标
-function getStatusIcon(status) {
-    const icons = {
-        'pending': 'clock',
-        'running': 'play-circle',
-        'completed': 'check-circle',
-        'failed': 'x-circle',
-        'stopped': 'pause-circle'
-    };
-    return icons[status] || 'question-circle';
 }
 
 // 获取状态文本
