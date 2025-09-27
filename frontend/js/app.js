@@ -775,10 +775,7 @@ function updateSystemStats() {
 // 更新服务器性能统计
 async function updateServerStats() {
     try {
-        const [serverResponse, trafficResponse] = await Promise.all([
-            fetch(API_BASE + '/server-stats'),
-            fetch(API_BASE + '/traffic-stats')
-        ]);
+        const serverResponse = await fetch(API_BASE + '/server-stats');
         
         if (serverResponse.ok) {
             const stats = await serverResponse.json();
@@ -806,11 +803,16 @@ async function updateServerStats() {
                 uptimeElement.textContent = `${hours}h ${minutes}m`;
             }
             
-            // 更新图表数据
-            if (trafficResponse.ok) {
-                const trafficStats = await trafficResponse.json();
-                updateCharts(stats, trafficStats.total_requests);
+            // 计算总请求数并更新图表数据
+            let totalRequests = 0;
+            if (tasks && Array.isArray(tasks)) {
+                tasks.forEach(task => {
+                    if (task.stats) {
+                        totalRequests += task.stats.total_requests || 0;
+                    }
+                });
             }
+            updateCharts(stats, totalRequests);
         }
     } catch (error) {
         // 移除获取服务器统计失败日志
