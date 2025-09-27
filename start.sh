@@ -92,22 +92,6 @@ echo -e "${GREEN}✅ API服务器构建完成${NC}"
 # 文件权限设置
 chmod +x cc-go api_server
 
-# 前端资源检查
-echo -e "${CYAN}🎨 前端资源检查...${NC}"
-if [ ! -d "frontend" ]; then
-    echo -e "${RED}❌ 前端目录不存在${NC}"
-    exit 1
-fi
-
-if [ ! -f "frontend/css/bootstrap.min.css" ]; then
-    echo -e "${YELLOW}⚠️  Bootstrap CSS文件缺失${NC}"
-fi
-
-if [ ! -f "frontend/js/bootstrap.bundle.min.js" ]; then
-    echo -e "${YELLOW}⚠️  Bootstrap JS文件缺失${NC}"
-fi
-
-echo -e "${GREEN}✅ 前端资源检查完成${NC}"
 
 # 性能优化建议
 echo -e "${CYAN}⚡ 性能优化建议...${NC}"
@@ -124,7 +108,6 @@ echo -e "${YELLOW}📱 前端地址: http://localhost:8080${NC}"
 echo -e "${YELLOW}🔗 API地址: http://localhost:8080/api${NC}"
 echo -e "${YELLOW}📊 日志页面: http://localhost:8080/logs.html${NC}"
 echo -e "${YELLOW}🛡️  CF绕过: 已启用${NC}"
-echo -e "${YELLOW}🎯 随机化: 上亿万万个组合${NC}"
 echo ""
 echo -e "${BLUE}按 Ctrl+C 停止服务${NC}"
 echo ""

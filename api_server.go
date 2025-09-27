@@ -17,7 +17,6 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
-	"github.com/gorilla/websocket"
 )
 
 // 任务状态
@@ -70,13 +69,8 @@ type TaskStats struct {
 var (
 	tasks      = make(map[string]*Task)
 	tasksMutex sync.RWMutex
-	upgrader   = websocket.Upgrader{
-		CheckOrigin: func(r *http.Request) bool {
-			return true
-		},
-	}
-	tasksFile = "/cc-tasks.json"
-	port      = "8080"
+	tasksFile  = "/cc-tasks.json"
+	port       = "8080"
 )
 
 func main() {
@@ -106,8 +100,8 @@ func main() {
 	api.HandleFunc("/tasks/{id}/logs", getTaskLogs).Methods("GET")
 	api.HandleFunc("/tasks/{id}/stats", getTaskStats).Methods("GET")
 	
-	// WebSocket连接
-	api.HandleFunc("/ws", handleWebSocket)
+	// SSE连接
+	api.HandleFunc("/events", handleSSE)
 	
 	// 静态文件服务（放在最后，避免拦截API请求）
 	r.PathPrefix("/").Handler(http.FileServer(http.Dir("./frontend/")))
@@ -420,29 +414,46 @@ func getTaskStats(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(task.Stats)
 }
 
-func handleWebSocket(w http.ResponseWriter, r *http.Request) {
-	conn, err := upgrader.Upgrade(w, r, nil)
-	if err != nil {
-		log.Println("WebSocket upgrade failed:", err)
-		return
-	}
-	defer conn.Close()
-	
-	// 发送所有任务状态
+func handleSSE(w http.ResponseWriter, r *http.Request) {
+	// 设置SSE响应头
+	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("Connection", "keep-alive")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Headers", "Cache-Control")
+
+	// 发送初始任务状态
 	tasksMutex.RLock()
 	for _, task := range tasks {
-		conn.WriteJSON(map[string]interface{}{
+		data := map[string]interface{}{
 			"type": "task_update",
 			"task": task,
-		})
+		}
+		jsonData, _ := json.Marshal(data)
+		fmt.Fprintf(w, "data: %s\n\n", jsonData)
 	}
 	tasksMutex.RUnlock()
 	
-	// 保持连接活跃
+	// 刷新响应
+	if flusher, ok := w.(http.Flusher); ok {
+		flusher.Flush()
+	}
+
+	// 保持连接活跃，定期发送心跳
+	ticker := time.NewTicker(30 * time.Second)
+	defer ticker.Stop()
+	
 	for {
-		_, _, err := conn.ReadMessage()
-		if err != nil {
-			break
+		select {
+		case <-ticker.C:
+			// 发送心跳
+			fmt.Fprintf(w, "data: {\"type\":\"heartbeat\"}\n\n")
+			if flusher, ok := w.(http.Flusher); ok {
+				flusher.Flush()
+			}
+		case <-r.Context().Done():
+			// 客户端断开连接
+			return
 		}
 	}
 }
@@ -595,12 +606,26 @@ func loadTasks() {
 		return
 	}
 	
-	// 加载到内存
+	// 加载到内存，并将所有任务状态设为停止
 	tasksMutex.Lock()
+	modifiedCount := 0
 	for _, task := range taskList {
+		// 将所有非停止状态的任务改为停止状态
+		if task.Status != StatusStopped {
+			task.Status = StatusStopped
+			task.Process = nil
+			task.CompletedAt = nil
+			modifiedCount++
+		}
 		tasks[task.ID] = task
 	}
 	tasksMutex.Unlock()
+	
+	// 如果有任务状态被修改，保存文件
+	if modifiedCount > 0 {
+		saveTasks()
+		log.Printf("🔄 已将 %d 个任务状态改为停止", modifiedCount)
+	}
 	
 	log.Printf("✅ 加载了 %d 个任务", len(taskList))
 }
