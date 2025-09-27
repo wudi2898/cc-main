@@ -93,7 +93,17 @@ function initCharts() {
                     }
                 },
                 x: {
-                    display: false
+                    type: 'time',
+                    time: {
+                        displayFormats: {
+                            second: 'HH:mm:ss',
+                            minute: 'HH:mm'
+                        }
+                    },
+                    title: {
+                        display: true,
+                        text: '时间'
+                    }
                 }
             },
             plugins: {
@@ -150,7 +160,17 @@ function initCharts() {
                     }
                 },
                 x: {
-                    display: false
+                    type: 'time',
+                    time: {
+                        displayFormats: {
+                            second: 'HH:mm:ss',
+                            minute: 'HH:mm'
+                        }
+                    },
+                    title: {
+                        display: true,
+                        text: '时间'
+                    }
                 }
             },
             plugins: {
@@ -206,7 +226,17 @@ function initCharts() {
                     }
                 },
                 x: {
-                    display: false
+                    type: 'time',
+                    time: {
+                        displayFormats: {
+                            second: 'HH:mm:ss',
+                            minute: 'HH:mm'
+                        }
+                    },
+                    title: {
+                        display: true,
+                        text: '时间'
+                    }
                 }
             },
             plugins: {
@@ -262,7 +292,17 @@ function initCharts() {
                     }
                 },
                 x: {
-                    display: false
+                    type: 'time',
+                    time: {
+                        displayFormats: {
+                            second: 'HH:mm:ss',
+                            minute: 'HH:mm'
+                        }
+                    },
+                    title: {
+                        display: true,
+                        text: '时间'
+                    }
                 }
             },
             plugins: {
@@ -318,7 +358,17 @@ function initCharts() {
                     }
                 },
                 x: {
-                    display: false
+                    type: 'time',
+                    time: {
+                        displayFormats: {
+                            second: 'HH:mm:ss',
+                            minute: 'HH:mm'
+                        }
+                    },
+                    title: {
+                        display: true,
+                        text: '时间'
+                    }
                 }
             },
             plugins: {
@@ -374,7 +424,17 @@ function initCharts() {
                     }
                 },
                 x: {
-                    display: false
+                    type: 'time',
+                    time: {
+                        displayFormats: {
+                            second: 'HH:mm:ss',
+                            minute: 'HH:mm'
+                        }
+                    },
+                    title: {
+                        display: true,
+                        text: '时间'
+                    }
                 }
             },
             plugins: {
@@ -410,14 +470,9 @@ function updateCharts(serverStats, totalRequests) {
     
     // 获取当前时间
     const now = new Date();
-    const timeLabel = now.toLocaleTimeString('zh-CN', { 
-        hour: '2-digit', 
-        minute: '2-digit', 
-        second: '2-digit' 
-    });
     
     // 添加新数据点
-    chartData.labels.push(timeLabel);
+    chartData.labels.push(now);
     chartData.cpu.push(serverStats.cpu_usage);
     chartData.memory.push(serverStats.memory_usage);
     chartData.traffic.push(totalRequests);
