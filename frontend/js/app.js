@@ -17,7 +17,7 @@ let chartData = {
 };
 
 // 最大数据点数量
-const MAX_DATA_POINTS = 1000; // 保留最近1000个数据点，支持滚动查看
+const MAX_DATA_POINTS = 30; // 保留最近30个数据点，实时滚动显示
 
 let currentTask = null;
 let autoRefreshInterval = null;
@@ -53,16 +53,7 @@ function initCharts() {
         return;
     }
     
-    // 注册 zoom 插件
-    if (typeof ChartZoom !== 'undefined') {
-        Chart.register(ChartZoom);
-        console.log('Zoom 插件已注册');
-    } else if (typeof window.ChartZoom !== 'undefined') {
-        Chart.register(window.ChartZoom);
-        console.log('Zoom 插件已注册 (window)');
-    } else {
-        console.warn('Zoom 插件未加载');
-    }
+    // 不需要 zoom 插件，使用简单的实时滚动显示
     
     console.log('开始初始化图表...');
     
@@ -125,22 +116,6 @@ function initCharts() {
                 legend: {
                     display: false
                 },
-                zoom: {
-                    pan: {
-                        enabled: true,
-                        mode: 'x'
-                    },
-                    zoom: {
-                        enabled: true,
-                        mode: 'x',
-                        wheel: {
-                            enabled: true
-                        },
-                        pinch: {
-                            enabled: true
-                        }
-                    }
-                }
             },
             layout: {
                 padding: {
@@ -212,22 +187,6 @@ function initCharts() {
                 legend: {
                     display: false
                 },
-                zoom: {
-                    pan: {
-                        enabled: true,
-                        mode: 'x'
-                    },
-                    zoom: {
-                        enabled: true,
-                        mode: 'x',
-                        wheel: {
-                            enabled: true
-                        },
-                        pinch: {
-                            enabled: true
-                        }
-                    }
-                }
             },
             layout: {
                 padding: {
@@ -505,22 +464,6 @@ function initCharts() {
     });
     
     console.log('图表初始化完成');
-    
-    // 添加键盘快捷键支持滚动
-    document.addEventListener('keydown', function(e) {
-        if (e.ctrlKey || e.metaKey) {
-            const charts = [cpuChart, memoryChart, trafficChart, goroutinesChart, networkRxChart, networkTxChart];
-            charts.forEach(chart => {
-                if (chart && chart.zoom) {
-                    if (e.key === 'ArrowLeft') {
-                        chart.zoom.pan({x: -100, y: 0});
-                    } else if (e.key === 'ArrowRight') {
-                        chart.zoom.pan({x: 100, y: 0});
-                    }
-                }
-            });
-        }
-    });
 }
 
 // 更新图表数据 - 时间序列折线图
