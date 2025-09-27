@@ -163,27 +163,50 @@ async function refreshTasks() {
 // 渲染任务列表
 function renderTasks() {
     const container = document.getElementById('tasksContainer');
-    container.innerHTML = '';
-
+    
     if (!tasks || tasks.length === 0) {
-        container.innerHTML = `
-            <div class="col-12">
-                <div class="empty-state">
-                    <div class="empty-state-icon">
-                        <i class="bi bi-inbox"></i>
+        if (container.children.length === 0 || !container.querySelector('.empty-state')) {
+            container.innerHTML = `
+                <div class="col-12">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">
+                            <i class="bi bi-inbox"></i>
+                        </div>
+                        <div class="empty-state-title">暂无任务</div>
+                        <div class="empty-state-text">点击"创建新任务"按钮开始创建第一个任务</div>
+                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createTaskModal">
+                            <i class="bi bi-plus-circle-fill"></i> 创建新任务
+                        </button>
                     </div>
-                    <div class="empty-state-title">暂无任务</div>
-                    <div class="empty-state-text">点击"创建新任务"按钮开始创建第一个任务</div>
-                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createTaskModal">
-                        <i class="bi bi-plus-circle-fill"></i> 创建新任务
-                    </button>
                 </div>
-            </div>
-        `;
+            `;
+        }
         return;
     }
 
-    tasks.forEach((task, index) => {
+    // 按创建时间排序任务，确保顺序稳定
+    const sortedTasks = [...tasks].sort((a, b) => {
+        const timeA = new Date(a.created_at || 0).getTime();
+        const timeB = new Date(b.created_at || 0).getTime();
+        return timeA - timeB; // 升序排列，最早的在前面
+    });
+
+    // 检查是否需要更新
+    const existingCards = container.querySelectorAll('.task-card');
+    if (existingCards.length === sortedTasks.length) {
+        // 更新现有卡片而不是重新创建
+        sortedTasks.forEach((task, index) => {
+            const existingCard = existingCards[index];
+            if (existingCard) {
+                updateTaskCard(existingCard, task);
+            }
+        });
+        return;
+    }
+
+    // 只有在任务数量变化时才重新渲染
+    container.innerHTML = '';
+    sortedTasks.forEach((task, index) => {
         const taskCard = createTaskCard(task);
         taskCard.style.animationDelay = `${index * 0.1}s`;
         container.appendChild(taskCard);
@@ -246,9 +269,6 @@ function createTaskCard(task) {
                             <div class="task-stat-label">总请求</div>
                         </div>
                         <div class="task-stat">
-                            <div class="task-stat-value text-${task.stats.successful_requests > 0 ? 'success' : 'danger'}">
-                        </div>
-                        <div class="task-stat">
                             <div class="task-stat-value">${(task.stats.current_rps || 0).toFixed(0)}</div>
                             <div class="task-stat-label">当前RPS</div>
                         </div>
@@ -282,6 +302,63 @@ function createTaskCard(task) {
         </div>
     `;
     return div;
+}
+
+// 更新任务卡片
+function updateTaskCard(cardElement, task) {
+    const statusClass = getStatusClass(task.status);
+    const statusText = getStatusText(task.status);
+    const statusIcon = getStatusIcon(task.status);
+    
+    // 更新状态
+    const statusElement = cardElement.querySelector('.task-status');
+    if (statusElement) {
+        statusElement.className = `task-status ${statusClass}`;
+        statusElement.innerHTML = `<i class="bi bi-${statusIcon}"></i> ${statusText}`;
+    }
+    
+    // 更新统计信息
+    const statsContainer = cardElement.querySelector('.task-stats-grid');
+    if (statsContainer && task.stats) {
+        statsContainer.innerHTML = `
+            <div class="task-stat">
+                <div class="task-stat-value">${(task.stats.total_requests || 0).toLocaleString()}</div>
+                <div class="task-stat-label">总请求</div>
+            </div>
+            <div class="task-stat">
+                <div class="task-stat-value">${(task.stats.current_rps || 0).toFixed(0)}</div>
+                <div class="task-stat-label">当前RPS</div>
+            </div>
+            <div class="task-stat">
+                <div class="task-stat-value">${(task.stats.avg_rps || 0).toFixed(0)}</div>
+                <div class="task-stat-label">平均RPS</div>
+            </div>
+        `;
+    }
+    
+    // 更新操作按钮
+    const actionsContainer = cardElement.querySelector('.task-actions');
+    if (actionsContainer) {
+        actionsContainer.innerHTML = `
+            ${task.status === 'running' ? 
+                `<button class="btn btn-warning btn-sm" onclick="stopTask('${task.id}')" title="停止任务">
+                    <i class="bi bi-stop-circle-fill"></i> 停止
+                </button>` :
+                `<button class="btn btn-success btn-sm" onclick="startTask('${task.id}')" title="启动任务">
+                    <i class="bi bi-play-circle-fill"></i> 启动
+                </button>`
+            }
+            <button class="btn btn-info btn-sm" onclick="showLogsModal('${task.id}')" title="查看日志">
+                <i class="bi bi-journal-text"></i> 日志
+            </button>
+            <button class="btn btn-primary btn-sm" onclick="editTask('${task.id}')" title="编辑任务">
+                <i class="bi bi-pencil-fill"></i> 编辑
+            </button>
+            <button class="btn btn-danger btn-sm" onclick="deleteTask('${task.id}')" title="删除任务">
+                <i class="bi bi-trash-fill"></i> 删除
+            </button>
+        `;
+    }
 }
 
 // 获取状态样式类

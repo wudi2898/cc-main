@@ -43,7 +43,7 @@
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            background: linear-gradient(135deg, #f0f9f0 0%, #e8f5e8 50%, #d4edda 100%);
+            background: #f0f9f0;
             min-height: 100vh;
             color: var(--gray-800);
             line-height: 1.6;
@@ -116,7 +116,7 @@
             left: 0;
             right: 0;
             height: 2px;
-            background: linear-gradient(90deg, #28a745, #20c997, #17a2b8);
+            background: #28a745;
         }
         
         .system-stat-card:hover {
@@ -163,7 +163,7 @@
             left: 0;
             right: 0;
             height: 2px;
-            background: linear-gradient(90deg, #28a745, #20c997, #17a2b8);
+            background: #28a745;
         }
         
         .stat-card:hover {
@@ -190,7 +190,7 @@
             left: 0;
             right: 0;
             height: 4px;
-            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            background: var(--primary);
         }
 
         .stat-card:hover {
@@ -252,7 +252,7 @@
         }
 
         .btn-primary {
-            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            background: var(--primary);
             color: white;
         }
 
@@ -263,7 +263,7 @@
         }
 
         .btn-success {
-            background: linear-gradient(135deg, var(--success), #059669);
+            background: var(--success);
             color: white;
         }
 
@@ -390,13 +390,17 @@
         }
 
         .task-stats-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 0.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+            flex-wrap: wrap;
         }
 
         .task-stat {
             text-align: center;
+            flex: 1;
+            min-width: 0;
         }
 
         .task-stat-value {
@@ -472,7 +476,7 @@
         }
 
         .modal-header {
-            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            background: var(--primary);
             color: white;
             border-radius: 16px 16px 0 0;
             border: none;
@@ -586,7 +590,7 @@
         }
         
         .logs-modal .modal-header {
-            background: linear-gradient(135deg, #00d4ff, #6366f1);
+            background: #00d4ff;
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         }
         
@@ -620,9 +624,9 @@
         }
         
         .logs-container .log-timestamp {
-            color: #00d4ff;
+            color: #28a745;
             font-weight: 500;
-            text-shadow: 0 0 5px rgba(0, 212, 255, 0.3);
+            text-shadow: 0 0 5px rgba(40, 167, 69, 0.3);
         }
         
         .logs-container .log-level {
@@ -635,52 +639,52 @@
         }
         
         .logs-container .log-message {
-            color: rgba(255, 255, 255, 0.9);
+            color: rgba(40, 167, 69, 0.9);
         }
         
         .logs-container .log-info {
-            border-left-color: #00d4ff;
+            border-left-color: #28a745;
         }
         
         .logs-container .log-info .log-level {
-            background: rgba(0, 212, 255, 0.2);
-            color: #00d4ff;
+            background: rgba(40, 167, 69, 0.2);
+            color: #28a745;
         }
         
         .logs-container .log-success {
-            border-left-color: #10b981;
+            border-left-color: #1e7e34;
         }
         
         .logs-container .log-success .log-level {
-            background: rgba(16, 185, 129, 0.2);
-            color: #10b981;
+            background: rgba(30, 126, 52, 0.2);
+            color: #1e7e34;
         }
         
         .logs-container .log-warning {
-            border-left-color: #f59e0b;
+            border-left-color: #28a745;
         }
         
         .logs-container .log-warning .log-level {
-            background: rgba(245, 158, 11, 0.2);
-            color: #f59e0b;
+            background: rgba(40, 167, 69, 0.2);
+            color: #28a745;
         }
         
         .logs-container .log-error {
-            border-left-color: #ef4444;
+            border-left-color: #28a745;
         }
         
         .logs-container .log-error .log-level {
-            background: rgba(239, 68, 68, 0.2);
-            color: #ef4444;
+            background: rgba(40, 167, 69, 0.2);
+            color: #28a745;
         }
         
         .logs-container .log-debug {
-            border-left-color: #8b5cf6;
+            border-left-color: #28a745;
         }
         
         .logs-container .log-debug .log-level {
-            background: rgba(139, 92, 246, 0.2);
-            color: #8b5cf6;
+            background: rgba(40, 167, 69, 0.2);
+            color: #28a745;
         }
 
         /* 响应式设计 */
