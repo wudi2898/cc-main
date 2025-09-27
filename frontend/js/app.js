@@ -53,6 +53,9 @@ function initCharts() {
         return;
     }
     
+    // 注册 zoom 插件
+    Chart.register(ChartZoom);
+    
     console.log('开始初始化图表...');
     
     // CPU使用率图表 - 实时折线图
@@ -82,6 +85,10 @@ function initCharts() {
             responsive: true,
             maintainAspectRatio: false,
             aspectRatio: 2,
+            interaction: {
+                intersect: false,
+                mode: 'index'
+            },
             scales: {
                 y: {
                     beginAtZero: true,
@@ -109,6 +116,21 @@ function initCharts() {
             plugins: {
                 legend: {
                     display: false
+                },
+                zoom: {
+                    pan: {
+                        enabled: true,
+                        mode: 'x'
+                    },
+                    zoom: {
+                        wheel: {
+                            enabled: true
+                        },
+                        pinch: {
+                            enabled: true
+                        },
+                        mode: 'x'
+                    }
                 }
             },
             layout: {
@@ -149,6 +171,10 @@ function initCharts() {
             responsive: true,
             maintainAspectRatio: false,
             aspectRatio: 2,
+            interaction: {
+                intersect: false,
+                mode: 'index'
+            },
             scales: {
                 y: {
                     beginAtZero: true,
@@ -176,6 +202,21 @@ function initCharts() {
             plugins: {
                 legend: {
                     display: false
+                },
+                zoom: {
+                    pan: {
+                        enabled: true,
+                        mode: 'x'
+                    },
+                    zoom: {
+                        wheel: {
+                            enabled: true
+                        },
+                        pinch: {
+                            enabled: true
+                        },
+                        mode: 'x'
+                    }
                 }
             },
             layout: {
