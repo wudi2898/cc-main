@@ -823,7 +823,7 @@ func calculateCPUUsage() float64 {
 	totalTime := userTime + sysTime
 	
 	// 基于总CPU时间估算使用率，限制在合理范围内
-	cpuUsage := totalTime * 10.0 // 调整系数以获得更合理的显示
+	cpuUsage := totalTime * 100.0 // 调整系数以获得更合理的显示
 	if cpuUsage > 100 {
 		cpuUsage = 100
 	}
