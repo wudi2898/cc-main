@@ -57,6 +57,9 @@ function initCharts() {
     if (typeof ChartZoom !== 'undefined') {
         Chart.register(ChartZoom);
         console.log('Zoom 插件已注册');
+    } else if (typeof window.ChartZoom !== 'undefined') {
+        Chart.register(window.ChartZoom);
+        console.log('Zoom 插件已注册 (window)');
     } else {
         console.warn('Zoom 插件未加载');
     }
@@ -125,17 +128,17 @@ function initCharts() {
                 zoom: {
                     pan: {
                         enabled: true,
-                        mode: 'x',
-                        modifierKey: null
+                        mode: 'x'
                     },
                     zoom: {
+                        enabled: true,
+                        mode: 'x',
                         wheel: {
                             enabled: true
                         },
                         pinch: {
                             enabled: true
-                        },
-                        mode: 'x'
+                        }
                     }
                 }
             },
@@ -212,17 +215,17 @@ function initCharts() {
                 zoom: {
                     pan: {
                         enabled: true,
-                        mode: 'x',
-                        modifierKey: null
+                        mode: 'x'
                     },
                     zoom: {
+                        enabled: true,
+                        mode: 'x',
                         wheel: {
                             enabled: true
                         },
                         pinch: {
                             enabled: true
-                        },
-                        mode: 'x'
+                        }
                     }
                 }
             },
@@ -502,6 +505,22 @@ function initCharts() {
     });
     
     console.log('图表初始化完成');
+    
+    // 添加键盘快捷键支持滚动
+    document.addEventListener('keydown', function(e) {
+        if (e.ctrlKey || e.metaKey) {
+            const charts = [cpuChart, memoryChart, trafficChart, goroutinesChart, networkRxChart, networkTxChart];
+            charts.forEach(chart => {
+                if (chart && chart.zoom) {
+                    if (e.key === 'ArrowLeft') {
+                        chart.zoom.pan({x: -100, y: 0});
+                    } else if (e.key === 'ArrowRight') {
+                        chart.zoom.pan({x: 100, y: 0});
+                    }
+                }
+            });
+        }
+    });
 }
 
 // 更新图表数据 - 时间序列折线图
