@@ -464,6 +464,7 @@ func startTaskProcess(task *Task) {
 		"-schedule-duration", strconv.Itoa(task.ScheduleDuration),
 	)
 	
+	
 	// 设置工作目录
 	cmd.Dir = "."
 	

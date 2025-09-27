@@ -291,7 +291,6 @@ func performAttack(config *Config) bool {
 	
 	// 构建最终URL
 	finalURL := buildFinalURL(baseURL, config)
-	fmt.Printf("🔗 构建的URL: %s\n", finalURL)
 	
 	// 创建请求
 	var req *http.Request
@@ -399,13 +398,9 @@ func buildFinalURL(baseURL *url.URL, config *Config) string {
 	// 复制URL
 	finalURL := *baseURL
 	
-	fmt.Printf("🔍 原始URL: %s, 路径: %s\n", baseURL.String(), baseURL.Path)
-	
 	// 随机路径 - 如果是文件，添加随机数
 	if config.RandomPath {
-		originalPath := finalURL.Path
 		finalURL.Path = generateRandomPathForFile(finalURL.Path)
-		fmt.Printf("🔀 路径变化: %s -> %s\n", originalPath, finalURL.Path)
 	}
 	
 	// 随机参数
@@ -413,9 +408,7 @@ func buildFinalURL(baseURL *url.URL, config *Config) string {
 		finalURL.RawQuery = generateRandomParams()
 	}
 	
-	result := finalURL.String()
-	fmt.Printf("✅ 最终URL: %s\n", result)
-	return result
+	return finalURL.String()
 }
 
 func setAdvancedHeaders(req *http.Request, config *Config) {
