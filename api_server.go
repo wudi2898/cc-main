@@ -450,6 +450,7 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 // 启动任务进程
 func startTaskProcess(task *Task) {
 	log.Printf("🔧 构建命令参数: %s", task.TargetURL)
+	log.Printf("🔧 任务数据: URL=%s, Mode=%s, RandomPath=%v", task.TargetURL, task.Mode, task.RandomPath)
 	
 	// 构建命令
 	cmd := exec.Command("./cc-go",
