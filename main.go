@@ -432,9 +432,7 @@ func buildFinalURL(baseURL *url.URL, config *Config) string {
 	//	finalURL.RawQuery = generateRandomParams()
 	// }
 
-	finalURLStr := finalURL.String()
-	fmt.Printf("🔗 请求路径: %s\n", finalURLStr)
-	return finalURLStr
+	return finalURL.String()
 }
 
 func setAdvancedHeaders(req *http.Request, config *Config) {
