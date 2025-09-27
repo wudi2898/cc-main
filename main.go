@@ -373,14 +373,11 @@ func performFireAndForgetAttack(config *Config) int {
 	}
 
 	var client *http.Client
-	var useProxy bool
 	if len(proxies) > 0 {
 		px := proxies[rand.Intn(len(proxies))]
 		client = createSOCKS5Client(px, config.Timeout)
-		useProxy = true
 	} else {
 		client = createDirectClient(config.Timeout)
-		useProxy = false
 	}
 
 	finalURL := buildFinalURL(baseURL, config)
@@ -775,7 +772,6 @@ func statsReporter() {
 			"avg_rps":             stats.AvgRPS,
 			"uptime":              uptime,
 		}
-		jsonData, _ := json.Marshal(statsJSON)
 		// 移除JSON统计输出
 
 		stats.mu.Unlock()
