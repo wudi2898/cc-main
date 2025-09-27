@@ -369,11 +369,15 @@ func stopTask(w http.ResponseWriter, r *http.Request) {
 	// 停止任务进程
 	if task.Process != nil {
 		task.Process.Process.Kill()
+		task.Process = nil
 	}
 	
 	task.Status = StatusStopped
 	now := time.Now()
 	task.CompletedAt = &now
+	
+	// 添加停止日志
+	task.Logs = append(task.Logs, fmt.Sprintf("[%s] 任务已手动停止", now.Format("15:04:05")))
 	tasksMutex.Unlock()
 	
 	w.Header().Set("Access-Control-Allow-Origin", "*")
@@ -580,15 +584,24 @@ func startTaskProcess(task *Task) {
 	// 异步等待进程完成
 	go func() {
 		err := cmd.Wait()
-		if err != nil {
+		now := time.Now()
+		
+		// 检查任务是否已被手动停止
+		tasksMutex.RLock()
+		currentStatus := task.Status
+		tasksMutex.RUnlock()
+		
+		if currentStatus == StatusStopped {
+			// 任务已被手动停止，不改变状态
+			task.Logs = append(task.Logs, fmt.Sprintf("[%s] 任务已停止", now.Format("15:04:05")))
+		} else if err != nil {
 			task.Status = StatusFailed
-			task.Logs = append(task.Logs, fmt.Sprintf("[%s] 进程异常退出: %v", time.Now().Format("15:04:05"), err))
+			task.Logs = append(task.Logs, fmt.Sprintf("[%s] 进程异常退出: %v", now.Format("15:04:05"), err))
 		} else {
 			task.Status = StatusCompleted
-			task.Logs = append(task.Logs, fmt.Sprintf("[%s] 任务完成", time.Now().Format("15:04:05")))
+			task.Logs = append(task.Logs, fmt.Sprintf("[%s] 任务完成", now.Format("15:04:05")))
 		}
 		
-		now := time.Now()
 		task.CompletedAt = &now
 		
 		// 清理进程引用
@@ -730,7 +743,7 @@ func getServerStats(w http.ResponseWriter, r *http.Request) {
 
 // 更新服务器性能统计
 func updateServerStats() {
-	ticker := time.NewTicker(2 * time.Second)
+	ticker := time.NewTicker(1 * time.Second) // 改为每秒更新
 	defer ticker.Stop()
 	
 	for range ticker.C {
@@ -747,11 +760,23 @@ func updateServerStats() {
 		serverStats.MemoryTotal = m.Sys
 		serverStats.MemoryUsage = float64(m.Alloc) / float64(m.Sys) * 100
 		
-		// 简单的CPU使用率估算（基于Goroutine数量）
-		// 注意：这是一个简化的估算，实际CPU使用率需要更复杂的计算
-		serverStats.CPUUsage = float64(serverStats.Goroutines) / 100.0
-		if serverStats.CPUUsage > 100 {
-			serverStats.CPUUsage = 100
-		}
+		// 更准确的CPU使用率计算
+		serverStats.CPUUsage = calculateCPUUsage()
 	}
+}
+
+// 计算CPU使用率
+func calculateCPUUsage() float64 {
+	var m runtime.MemStats
+	runtime.ReadMemStats(&m)
+	
+	// 基于系统调用次数和Goroutine数量估算CPU使用率
+	cpuUsage := float64(m.NumGC + m.NumCgoCall + runtime.NumGoroutine()) / 1000.0
+	if cpuUsage > 100 {
+		cpuUsage = 100
+	}
+	if cpuUsage < 0 {
+		cpuUsage = 0
+	}
+	return cpuUsage
 }

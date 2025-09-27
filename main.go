@@ -771,11 +771,6 @@ func printFinalStats() {
 	fmt.Printf("总请求数: %d\n", total)
 	fmt.Printf("成功请求: %d\n", success)
 	fmt.Printf("失败请求: %d\n", fail)
-	if total > 0 {
-		fmt.Printf("成功率: %.2f%%\n", float64(success)/float64(total)*100)
-	} else {
-		fmt.Printf("成功率: N/A (没有请求)\n")
-	}
 	fmt.Printf("平均RPS: %.2f\n", avgRPS)
 	fmt.Printf("运行时间: %.2f秒\n", uptime)
 	

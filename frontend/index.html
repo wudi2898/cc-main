@@ -764,11 +764,6 @@
             <a class="navbar-brand" href="#">
                 <i class="bi bi-lightning-charge-fill"></i> CC压力测试控制面板
             </a>
-            <div class="navbar-nav ms-auto">
-                <a class="nav-link" href="#" onclick="showAllLogsModal()">
-                    <i class="bi bi-journal-text"></i> 实时日志
-                </a>
-            </div>
         </div>
     </nav>
 
@@ -776,10 +771,6 @@
     <div class="main-container">
         <!-- 系统状态 -->
         <div class="system-stats">
-            <div class="system-stat-card">
-                <div class="system-stat-value" id="systemUptime">0</div>
-                <div class="system-stat-label">系统运行时间</div>
-            </div>
             <div class="system-stat-card">
                 <div class="system-stat-value" id="totalRequests">0</div>
                 <div class="system-stat-label">总请求数</div>
@@ -793,8 +784,6 @@
                 <div class="system-stat-label">平均RPS</div>
             </div>
             <div class="system-stat-card">
-                <div class="system-stat-value" id="successRate">0%</div>
-                <div class="system-stat-label">成功率</div>
             </div>
             <div class="system-stat-card">
                 <div class="system-stat-value" id="activeTasks">0</div>
@@ -839,18 +828,9 @@
                 <div class="stat-label">运行中</div>
             </div>
             <div class="stat-card fade-in-up">
-                <div class="stat-icon primary">
-                    <i class="bi bi-check-circle-fill"></i>
-                </div>
-                <div class="stat-value" id="completedTasks">0</div>
-                <div class="stat-label">已完成</div>
-            </div>
-            <div class="stat-card fade-in-up">
                 <div class="stat-icon danger">
                     <i class="bi bi-x-circle-fill"></i>
                 </div>
-                <div class="stat-value" id="failedTasks">0</div>
-                <div class="stat-label">失败</div>
             </div>
         </div>
 

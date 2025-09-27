@@ -77,7 +77,7 @@ function startAutoRefresh() {
     if (autoRefreshInterval) {
         clearInterval(autoRefreshInterval);
     }
-    autoRefreshInterval = setInterval(refreshTasks, 60000); // 60秒刷新一次，减少频率
+    autoRefreshInterval = setInterval(refreshTasks, 5000); // 5秒刷新一次，提高实时性
 }
 
 // 显示加载状态
@@ -250,9 +250,6 @@ function createTaskCard(task) {
                         </div>
                         <div class="task-stat">
                             <div class="task-stat-value text-${task.stats.successful_requests > 0 ? 'success' : 'danger'}">
-                                ${calculateSuccessRate(task.stats)}%
-                            </div>
-                            <div class="task-stat-label">成功率</div>
                         </div>
                         <div class="task-stat">
                             <div class="task-stat-value">${(task.stats.current_rps || 0).toFixed(0)}</div>
@@ -281,6 +278,9 @@ function createTaskCard(task) {
                 <button class="btn btn-primary btn-sm" onclick="editTask('${task.id}')" title="编辑任务">
                     <i class="bi bi-pencil-fill"></i> 编辑
                 </button>
+                <button class="btn btn-danger btn-sm" onclick="deleteTask('${task.id}')" title="删除任务">
+                    <i class="bi bi-trash-fill"></i> 删除
+                </button>
             </div>
         </div>
     `;
@@ -304,13 +304,6 @@ function getStatusIcon(status) {
     return icons[status] || 'question-circle-fill';
 }
 
-// 计算成功率
-function calculateSuccessRate(stats) {
-    if (!stats || !stats.total_requests || stats.total_requests === 0) {
-        return 0;
-    }
-    return ((stats.successful_requests / stats.total_requests) * 100).toFixed(1);
-}
 
 // 格式化日期时间
 function formatDateTime(dateString) {
@@ -345,14 +338,10 @@ function updateStats() {
     }
     const total = tasks.length;
     const running = tasks.filter(t => t.status === 'running').length;
-    const completed = tasks.filter(t => t.status === 'completed').length;
-    const failed = tasks.filter(t => t.status === 'failed').length;
 
     // 添加动画效果
     animateNumber('totalTasks', total);
     animateNumber('runningTasks', running);
-    animateNumber('completedTasks', completed);
-    animateNumber('failedTasks', failed);
     
     // 更新系统统计
     updateSystemStats();
@@ -385,8 +374,6 @@ function updateSystemStats() {
         }
     });
     
-    // 计算成功率
-    const successRate = totalRequests > 0 ? (totalSuccessful / totalRequests * 100) : 0;
     
     // 更新系统统计显示
     animateNumber('totalRequests', totalRequests);
@@ -394,20 +381,7 @@ function updateSystemStats() {
     animateNumber('avgRPS', Math.round(avgRPS));
     animateNumber('activeTasks', activeTasks);
     
-    // 更新成功率
-    const successRateElement = document.getElementById('successRate');
-    if (successRateElement) {
-        successRateElement.textContent = successRate.toFixed(1) + '%';
-    }
     
-    // 更新系统运行时间
-    const systemUptimeElement = document.getElementById('systemUptime');
-    if (systemUptimeElement) {
-        const uptime = Date.now() - window.startTime;
-        const hours = Math.floor(uptime / (1000 * 60 * 60));
-        const minutes = Math.floor((uptime % (1000 * 60 * 60)) / (1000 * 60));
-        systemUptimeElement.textContent = `${hours}h ${minutes}m`;
-    }
     
     // 更新服务器性能统计
     updateServerStats();
