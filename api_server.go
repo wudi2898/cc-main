@@ -72,7 +72,7 @@ var (
 			return true
 		},
 	}
-	tasksFile = "/cc-tasks.json"
+	tasksFile = "./cc-tasks.json"
 	port      = "8080"
 )
 
@@ -506,6 +506,15 @@ func startTaskProcess(task *Task) {
 			line := scanner.Text()
 			task.Logs = append(task.Logs, fmt.Sprintf("[%s] %s", time.Now().Format("15:04:05"), line))
 			log.Printf("📝 任务日志: %s", line)
+			
+			// 解析统计信息
+			if strings.Contains(line, "STATS_JSON:") {
+				statsJSON := strings.TrimPrefix(line, "STATS_JSON:")
+				var stats TaskStats
+				if err := json.Unmarshal([]byte(statsJSON), &stats); err == nil {
+					task.Stats = &stats
+				}
+			}
 		}
 	}()
 	
@@ -537,7 +546,7 @@ func startTaskProcess(task *Task) {
 // 解析命令行参数
 func parseArgs() {
 	flag.StringVar(&port, "port", "8080", "服务器端口")
-	flag.StringVar(&tasksFile, "tasks-file", "/cc-tasks.json", "任务列表文件路径")
+	flag.StringVar(&tasksFile, "tasks-file", "./cc-tasks.json", "任务列表文件路径")
 	flag.Parse()
 }
 

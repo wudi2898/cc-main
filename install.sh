@@ -15,7 +15,7 @@ VERSION="2.0.0"
 
 # 默认配置
 DEFAULT_PORT="8080"
-DEFAULT_TASKS_FILE="/cc-tasks.json"
+DEFAULT_TASKS_FILE="./cc-tasks.json"
 
 # 解析命令行参数
 PORT=$DEFAULT_PORT
@@ -75,10 +75,10 @@ rm -rf /tmp/cc-main 2>/dev/null || true
 echo -e "${GREEN}✅ 清理完成${NC}"
 
 # 检查任务文件是否存在
-if [ ! -f "/cc-tasks.json" ]; then
+if [ ! -f "./cc-tasks.json" ]; then
     echo -e "${YELLOW}📝 初始化任务文件...${NC}"
-    echo "[]" > /cc-tasks.json
-    chmod 666 /cc-tasks.json
+    echo "[]" > ./cc-tasks.json
+    chmod 666 ./cc-tasks.json
 fi
 
 # 1. 首先克隆项目代码

@@ -156,8 +156,8 @@ func startAttack(config *Config) {
 	rateLimiter := time.NewTicker(time.Second / time.Duration(config.RPS))
 	defer rateLimiter.Stop()
 	
-	// 创建超时器
-	timeout := time.After(time.Duration(config.Duration) * time.Second)
+	// 创建done通道
+	done := make(chan struct{})
 	
 	// 启动工作协程
 	var wg sync.WaitGroup
@@ -165,21 +165,22 @@ func startAttack(config *Config) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			worker(config, rateLimiter.C)
+			worker(config, rateLimiter.C, done)
 		}()
 	}
 	
 	// 等待超时
-	<-timeout
+	time.Sleep(time.Duration(config.Duration) * time.Second)
 	
 	fmt.Println("\n⏰ 攻击时间结束，等待所有请求完成...")
+	close(done) // 通知所有worker停止
 	wg.Wait()
 	
 	// 打印最终统计
 	printFinalStats()
 }
 
-func worker(config *Config, rateLimit <-chan time.Time) {
+func worker(config *Config, rateLimit <-chan time.Time, done <-chan struct{}) {
 	for {
 		select {
 		case <-rateLimit:
@@ -191,6 +192,8 @@ func worker(config *Config, rateLimit <-chan time.Time) {
 			} else {
 				atomic.AddInt64(&stats.FailedReqs, 1)
 			}
+		case <-done:
+			return
 		}
 	}
 }
