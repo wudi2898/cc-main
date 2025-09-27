@@ -770,8 +770,8 @@ func calculateCPUUsage() float64 {
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
 	
-	// 基于系统调用次数和Goroutine数量估算CPU使用率
-	cpuUsage := float64(m.NumGC + m.NumCgoCall + runtime.NumGoroutine()) / 1000.0
+	// 基于GC次数和Goroutine数量估算CPU使用率
+	cpuUsage := float64(m.NumGC + runtime.NumGoroutine()) / 100.0
 	if cpuUsage > 100 {
 		cpuUsage = 100
 	}
