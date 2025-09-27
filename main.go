@@ -449,8 +449,12 @@ func generateRandomPathForFile(originalPath string) string {
 		}
 	}
 	
-	// 如果不是文件，返回原始路径
-	return originalPath
+	// 如果不是文件，在路径后添加随机数
+	randomNum := rand.Intn(10000)
+	if originalPath == "/" {
+		return fmt.Sprintf("/%d", randomNum)
+	}
+	return fmt.Sprintf("%s/%d", originalPath, randomNum)
 }
 
 func generateRandomParams() string {
