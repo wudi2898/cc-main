@@ -43,33 +43,35 @@
 
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 50%, #16213e 100%);
             min-height: 100vh;
-            color: var(--gray-800);
+            color: var(--gray-100);
             line-height: 1.6;
         }
 
         /* 导航栏 */
         .navbar {
-            background: rgba(255, 255, 255, 0.95);
+            background: rgba(15, 15, 35, 0.95);
             backdrop-filter: blur(20px);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-            box-shadow: var(--shadow-sm);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: var(--shadow-lg);
         }
 
         .navbar-brand {
             font-weight: 600;
-            color: var(--primary) !important;
+            color: #00d4ff !important;
+            text-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
             text-decoration: none;
             transition: all 0.3s ease;
         }
 
         .navbar-brand:hover {
-            color: var(--primary-dark) !important;
+            color: #00b8e6 !important;
+            text-shadow: 0 0 15px rgba(0, 212, 255, 0.8);
         }
 
         .navbar-text {
-            color: var(--gray-600) !important;
+            color: rgba(255, 255, 255, 0.8) !important;
             font-weight: 500;
         }
 
@@ -82,16 +84,16 @@
 
         /* 卡片样式 */
         .card {
-            background: rgba(255, 255, 255, 0.95);
+            background: rgba(255, 255, 255, 0.05);
             backdrop-filter: blur(20px);
             border: none;
             border-radius: 16px;
             box-shadow: var(--shadow-lg);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
         .card-header {
-            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            background: linear-gradient(135deg, #00d4ff, #6366f1);
             color: white;
             border-radius: 16px 16px 0 0;
             border: none;
@@ -188,12 +190,12 @@
         }
 
         .stat-card {
-            background: rgba(255, 255, 255, 0.95);
+            background: rgba(255, 255, 255, 0.05);
             backdrop-filter: blur(20px);
             border-radius: 12px;
             padding: 1rem;
             box-shadow: var(--shadow-md);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.1);
             text-align: center;
             transition: all 0.3s ease;
         }
@@ -206,20 +208,21 @@
         .stat-value {
             font-size: 1.5rem;
             font-weight: 700;
-            color: var(--gray-900);
+            color: #00d4ff;
             margin-bottom: 0.25rem;
+            text-shadow: 0 0 10px rgba(0, 212, 255, 0.3);
         }
 
         .stat-label {
             font-size: 0.8rem;
-            color: var(--gray-600);
+            color: rgba(255, 255, 255, 0.7);
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
 
         /* 日志容器 */
         .log-container {
-            background: #0d1117;
+            background: rgba(0, 0, 0, 0.3);
             border-radius: 16px;
             padding: 1.5rem;
             height: 70vh;
@@ -245,8 +248,9 @@
         }
 
         .log-timestamp {
-            color: #7d8590;
+            color: #00d4ff;
             font-weight: 500;
+            text-shadow: 0 0 5px rgba(0, 212, 255, 0.3);
         }
 
         .log-level {
@@ -259,63 +263,63 @@
         }
 
         .log-message {
-            color: #e6edf3;
+            color: rgba(255, 255, 255, 0.9);
         }
 
         .log-info {
-            border-left-color: #58a6ff;
+            border-left-color: #00d4ff;
         }
 
         .log-info .log-level {
-            background: rgba(88, 166, 255, 0.2);
-            color: #58a6ff;
+            background: rgba(0, 212, 255, 0.2);
+            color: #00d4ff;
         }
 
         .log-success {
-            border-left-color: #3fb950;
+            border-left-color: #10b981;
         }
 
         .log-success .log-level {
-            background: rgba(63, 185, 80, 0.2);
-            color: #3fb950;
+            background: rgba(16, 185, 129, 0.2);
+            color: #10b981;
         }
 
         .log-warning {
-            border-left-color: #d29922;
+            border-left-color: #f59e0b;
         }
 
         .log-warning .log-level {
-            background: rgba(210, 153, 34, 0.2);
-            color: #d29922;
+            background: rgba(245, 158, 11, 0.2);
+            color: #f59e0b;
         }
 
         .log-error {
-            border-left-color: #f85149;
+            border-left-color: #ef4444;
         }
 
         .log-error .log-level {
-            background: rgba(248, 81, 73, 0.2);
-            color: #f85149;
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
         }
 
         .log-debug {
-            border-left-color: #a5a5a5;
+            border-left-color: #8b5cf6;
         }
 
         .log-debug .log-level {
-            background: rgba(165, 165, 165, 0.2);
-            color: #a5a5a5;
+            background: rgba(139, 92, 246, 0.2);
+            color: #8b5cf6;
         }
 
         /* 控制按钮 */
         .log-controls {
-            background: rgba(255, 255, 255, 0.95);
+            background: rgba(255, 255, 255, 0.05);
             backdrop-filter: blur(20px);
             border-radius: 16px;
             padding: 1rem 1.5rem;
             margin-bottom: 1rem;
             box-shadow: var(--shadow-md);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
         .control-buttons {

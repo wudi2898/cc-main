@@ -1,5 +1,5 @@
 // 全局变量
-let ws = null;
+let eventSource = null;
 let autoScroll = true;
 let currentTaskId = null;
 let tasks = [];
@@ -16,7 +16,7 @@ document.addEventListener('DOMContentLoaded', function() {
         tasks = [];
     }
     
-    initWebSocket();
+    initSSE();
     loadTasks();
     initEventListeners();
     
@@ -54,17 +54,16 @@ function initEventListeners() {
     });
 }
 
-// 初始化WebSocket连接
-function initWebSocket() {
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    ws = new WebSocket(protocol + '//' + window.location.host + API_BASE + '/ws');
+// 初始化SSE连接
+function initSSE() {
+    eventSource = new EventSource(API_BASE + '/events');
     
-    ws.onopen = function() {
-        console.log('WebSocket连接已建立');
+    eventSource.onopen = function() {
+        console.log('SSE连接已建立');
         showToast('连接成功', 'success');
     };
     
-    ws.onmessage = function(event) {
+    eventSource.onmessage = function(event) {
         try {
             const data = JSON.parse(event.data);
             if (data.type === 'task_update') {
@@ -73,21 +72,20 @@ function initWebSocket() {
                 addLogEntry(data.log);
             } else if (data.type === 'task_stats' && data.task_id === currentTaskId) {
                 updateTaskStats(data.stats);
+            } else if (data.type === 'heartbeat') {
+                // 心跳消息，保持连接活跃
+                console.log('SSE心跳');
             }
         } catch (error) {
-            console.error('WebSocket消息解析失败:', error);
+            console.error('SSE消息解析失败:', error);
         }
     };
     
-    ws.onerror = function(error) {
-        console.error('WebSocket连接错误:', error);
+    eventSource.onerror = function(error) {
+        console.error('SSE连接错误:', error);
         showToast('连接错误', 'error');
-    };
-    
-    ws.onclose = function() {
-        console.log('WebSocket连接已关闭，5秒后重连...');
-        showToast('连接断开，正在重连...', 'warning');
-        setTimeout(initWebSocket, 5000);
+        // 5秒后重连
+        setTimeout(initSSE, 5000);
     };
 }
 
@@ -178,6 +176,9 @@ async function loadTasks() {
         const taskId = urlParams.get('task');
         if (!taskId && tasks.length > 0) {
             selectTaskById(tasks[0].id);
+        } else if (tasks.length === 0) {
+            // 如果没有任务，显示空状态
+            hideTaskDetails();
         }
         
         showToast('任务列表加载成功', 'success');
@@ -575,7 +576,7 @@ function escapeHtml(text) {
 
 // 页面卸载时清理
 window.addEventListener('beforeunload', function() {
-    if (ws) {
-        ws.close();
+    if (eventSource) {
+        eventSource.close();
     }
 });

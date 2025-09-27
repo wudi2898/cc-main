@@ -14,6 +14,9 @@ document.addEventListener('DOMContentLoaded', function() {
         tasks = [];
     }
     
+    // 记录启动时间
+    window.startTime = Date.now();
+    
     initSSE();
     refreshTasks();
     startAutoRefresh();
@@ -352,6 +355,61 @@ function updateStats() {
     animateNumber('runningTasks', running);
     animateNumber('completedTasks', completed);
     animateNumber('failedTasks', failed);
+    
+    // 更新系统统计
+    updateSystemStats();
+}
+
+// 更新系统统计
+function updateSystemStats() {
+    if (!tasks) {
+        tasks = [];
+    }
+    
+    // 计算系统总统计
+    let totalRequests = 0;
+    let totalSuccessful = 0;
+    let totalFailed = 0;
+    let currentRPS = 0;
+    let avgRPS = 0;
+    let activeTasks = 0;
+    
+    tasks.forEach(task => {
+        if (task.stats) {
+            totalRequests += task.stats.total_requests || 0;
+            totalSuccessful += task.stats.successful_requests || 0;
+            totalFailed += task.stats.failed_requests || 0;
+            currentRPS += task.stats.current_rps || 0;
+            avgRPS += task.stats.avg_rps || 0;
+        }
+        if (task.status === 'running') {
+            activeTasks++;
+        }
+    });
+    
+    // 计算成功率
+    const successRate = totalRequests > 0 ? (totalSuccessful / totalRequests * 100) : 0;
+    
+    // 更新系统统计显示
+    animateNumber('totalRequests', totalRequests);
+    animateNumber('currentRPS', Math.round(currentRPS));
+    animateNumber('avgRPS', Math.round(avgRPS));
+    animateNumber('activeTasks', activeTasks);
+    
+    // 更新成功率
+    const successRateElement = document.getElementById('successRate');
+    if (successRateElement) {
+        successRateElement.textContent = successRate.toFixed(1) + '%';
+    }
+    
+    // 更新系统运行时间
+    const systemUptimeElement = document.getElementById('systemUptime');
+    if (systemUptimeElement) {
+        const uptime = Date.now() - window.startTime;
+        const hours = Math.floor(uptime / (1000 * 60 * 60));
+        const minutes = Math.floor((uptime % (1000 * 60 * 60)) / (1000 * 60));
+        systemUptimeElement.textContent = `${hours}h ${minutes}m`;
+    }
 }
 
 // 数字动画
