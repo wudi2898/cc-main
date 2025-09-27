@@ -359,12 +359,7 @@ func performAttack(config *Config) bool {
 		fmt.Printf("✅ 请求成功: %d\n", resp.StatusCode)
 	}
 
-	// 更新统计
-	if resp.StatusCode < 500 {
-		atomic.AddInt64(&stats.SuccessfulReqs, 1)
-	} else {
-		atomic.AddInt64(&stats.FailedReqs, 1)
-	}
+	// 统计已在worker中处理，这里不需要重复计算
 
 	return resp.StatusCode < 500
 }

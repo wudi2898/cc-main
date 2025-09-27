@@ -274,7 +274,7 @@ function createTaskCard(task) {
                         <i class="bi bi-play-circle-fill"></i> 启动
                     </button>`
                 }
-                <button class="btn btn-info btn-sm" onclick="viewLogs('${task.id}')" title="查看日志">
+                <button class="btn btn-info btn-sm" onclick="showLogsModal('${task.id}')" title="查看日志">
                     <i class="bi bi-journal-text"></i> 日志
                 </button>
                 <button class="btn btn-primary btn-sm" onclick="editTask('${task.id}')" title="编辑任务">
@@ -688,9 +688,183 @@ async function updateTask() {
     }
 }
 
-// 查看日志
-function viewLogs(taskId) {
-    window.open(`logs.html?task=${taskId}`, '_blank');
+// 显示日志弹窗
+function showLogsModal(taskId) {
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) {
+        showToast('任务不存在', 'error');
+        return;
+    }
+    
+    // 设置当前任务信息
+    document.getElementById('logsTaskName').textContent = task.name;
+    document.getElementById('logsTaskUrl').textContent = task.target_url;
+    document.getElementById('logsTaskStatus').textContent = getStatusText(task.status);
+    document.getElementById('logsTaskStatus').className = `badge bg-${getStatusClass(task.status)}`;
+    
+    // 清空日志容器
+    const logContainer = document.getElementById('logsContainer');
+    logContainer.innerHTML = '';
+    
+    // 设置当前任务ID
+    window.currentLogsTaskId = taskId;
+    
+    // 显示弹窗
+    new bootstrap.Modal(document.getElementById('logsModal')).show();
+    
+    // 加载日志
+    loadTaskLogsForModal(taskId);
+}
+
+// 为弹窗加载任务日志
+async function loadTaskLogsForModal(taskId) {
+    try {
+        const response = await fetch(API_BASE + `/tasks/${taskId}/logs`);
+        if (!response.ok) {
+            throw new Error('获取任务日志失败');
+        }
+        const logs = await response.json();
+        renderLogsInModal(logs);
+    } catch (error) {
+        console.error('加载日志失败:', error);
+        showToast('加载日志失败: ' + error.message, 'error');
+    }
+}
+
+// 在弹窗中渲染日志
+function renderLogsInModal(logs) {
+    const container = document.getElementById('logsContainer');
+    if (!container) return;
+    
+    container.innerHTML = '';
+    
+    if (!logs || !Array.isArray(logs)) {
+        return;
+    }
+    
+    logs.forEach(log => {
+        addLogEntryToModal(log);
+    });
+}
+
+// 向弹窗添加日志条目
+function addLogEntryToModal(log) {
+    const container = document.getElementById('logsContainer');
+    if (!container) return;
+    
+    const div = document.createElement('div');
+    div.className = 'log-entry';
+    
+    // 解析日志格式 [时间] 内容
+    const logMatch = log.match(/^\[([^\]]+)\]\s*(.*)$/);
+    let timestamp = '';
+    let message = log;
+    
+    if (logMatch) {
+        timestamp = logMatch[1];
+        message = logMatch[2];
+    }
+    
+    // 根据日志级别设置样式
+    let level = 'info';
+    if (message.includes('ERROR') || message.includes('错误') || message.includes('失败')) {
+        level = 'error';
+    } else if (message.includes('WARNING') || message.includes('警告')) {
+        level = 'warning';
+    } else if (message.includes('SUCCESS') || message.includes('成功')) {
+        level = 'success';
+    } else if (message.includes('DEBUG') || message.includes('调试')) {
+        level = 'debug';
+    }
+    
+    div.className += ` log-${level}`;
+    
+    // 构建日志内容
+    div.innerHTML = `
+        ${timestamp ? `<span class="log-timestamp">[${timestamp}]</span>` : ''}
+        <span class="log-level">${level.toUpperCase()}</span>
+        <span class="log-message">${escapeHtml(message)}</span>
+    `;
+    
+    container.appendChild(div);
+    
+    // 自动滚动到底部
+    container.scrollTop = container.scrollHeight;
+}
+
+// 获取状态样式类
+function getStatusClass(status) {
+    const classes = {
+        'pending': 'secondary',
+        'running': 'success',
+        'completed': 'primary',
+        'failed': 'danger',
+        'stopped': 'warning'
+    };
+    return classes[status] || 'secondary';
+}
+
+// 刷新弹窗中的日志
+function refreshLogsInModal() {
+    const modal = document.getElementById('logsModal');
+    if (modal && modal.classList.contains('show')) {
+        // 获取当前任务ID（需要从全局变量中获取）
+        const currentTaskId = window.currentLogsTaskId;
+        if (currentTaskId) {
+            loadTaskLogsForModal(currentTaskId);
+        }
+    }
+}
+
+// 显示所有任务日志弹窗
+function showAllLogsModal() {
+    if (!tasks || tasks.length === 0) {
+        showToast('没有任务可查看', 'warning');
+        return;
+    }
+    
+    // 设置当前任务信息
+    document.getElementById('logsTaskName').textContent = '所有任务';
+    document.getElementById('logsTaskUrl').textContent = '系统日志';
+    document.getElementById('logsTaskStatus').textContent = '系统';
+    document.getElementById('logsTaskStatus').className = 'badge bg-info';
+    
+    // 清空日志容器
+    const logContainer = document.getElementById('logsContainer');
+    logContainer.innerHTML = '';
+    
+    // 显示弹窗
+    new bootstrap.Modal(document.getElementById('logsModal')).show();
+    
+    // 加载所有任务日志
+    loadAllTasksLogs();
+}
+
+// 加载所有任务日志
+async function loadAllTasksLogs() {
+    try {
+        const allLogs = [];
+        for (const task of tasks) {
+            try {
+                const response = await fetch(API_BASE + `/tasks/${task.id}/logs`);
+                if (response.ok) {
+                    const logs = await response.json();
+                    logs.forEach(log => {
+                        allLogs.push(`[${task.name}] ${log}`);
+                    });
+                }
+            } catch (error) {
+                console.error(`加载任务 ${task.name} 日志失败:`, error);
+            }
+        }
+        
+        // 按时间排序
+        allLogs.sort();
+        renderLogsInModal(allLogs);
+    } catch (error) {
+        console.error('加载所有日志失败:', error);
+        showToast('加载日志失败: ' + error.message, 'error');
+    }
 }
 
 // 导出任务

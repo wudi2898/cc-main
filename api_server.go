@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -65,12 +66,24 @@ type TaskStats struct {
 	Uptime         float64 `json:"uptime"`
 }
 
+// 服务器性能统计
+type ServerStats struct {
+	CPUUsage    float64 `json:"cpu_usage"`
+	MemoryUsage float64 `json:"memory_usage"`
+	MemoryTotal uint64  `json:"memory_total"`
+	MemoryUsed  uint64  `json:"memory_used"`
+	Goroutines  int     `json:"goroutines"`
+	Uptime      float64 `json:"uptime"`
+	StartTime   time.Time
+}
+
 // 全局变量
 var (
-	tasks      = make(map[string]*Task)
-	tasksMutex sync.RWMutex
-	tasksFile  = "/cc-tasks.json"
-	port       = "8080"
+	tasks        = make(map[string]*Task)
+	tasksMutex   sync.RWMutex
+	tasksFile    = "/cc-tasks.json"
+	port         = "8080"
+	serverStats  = &ServerStats{StartTime: time.Now()}
 )
 
 func main() {
@@ -103,11 +116,17 @@ func main() {
 	// SSE连接
 	api.HandleFunc("/events", handleSSE)
 	
+	// 服务器性能API
+	api.HandleFunc("/server-stats", getServerStats).Methods("GET")
+	
 	// 静态文件服务（放在最后，避免拦截API请求）
 	r.PathPrefix("/").Handler(http.FileServer(http.Dir("./frontend/")))
 	
 	// 启动服务器
 	fmt.Println("🚀 API服务器启动中...")
+	
+	// 启动性能监控
+	go updateServerStats()
 	
 	// 获取服务器IP地址
 	serverIP := "localhost"
@@ -685,4 +704,39 @@ func saveTasks() error {
 	}
 	
 	return nil
+}
+
+// 获取服务器性能统计
+func getServerStats(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	json.NewEncoder(w).Encode(serverStats)
+}
+
+// 更新服务器性能统计
+func updateServerStats() {
+	ticker := time.NewTicker(2 * time.Second)
+	defer ticker.Stop()
+	
+	for range ticker.C {
+		// 更新运行时间
+		serverStats.Uptime = time.Since(serverStats.StartTime).Seconds()
+		
+		// 更新Goroutine数量
+		serverStats.Goroutines = runtime.NumGoroutine()
+		
+		// 更新内存使用情况
+		var m runtime.MemStats
+		runtime.ReadMemStats(&m)
+		serverStats.MemoryUsed = m.Alloc
+		serverStats.MemoryTotal = m.Sys
+		serverStats.MemoryUsage = float64(m.Alloc) / float64(m.Sys) * 100
+		
+		// 简单的CPU使用率估算（基于Goroutine数量）
+		// 注意：这是一个简化的估算，实际CPU使用率需要更复杂的计算
+		serverStats.CPUUsage = float64(serverStats.Goroutines) / 100.0
+		if serverStats.CPUUsage > 100 {
+			serverStats.CPUUsage = 100
+		}
+	}
 }
