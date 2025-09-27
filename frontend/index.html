@@ -687,6 +687,43 @@
             color: #28a745;
         }
 
+        /* 图表容器 */
+        .charts-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin: 2rem 0;
+        }
+
+        .chart-card {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: var(--shadow-md);
+            border: 1px solid rgba(40, 167, 69, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .chart-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(40, 167, 69, 0.15);
+        }
+
+        .chart-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--gray-900);
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+
+        .chart-card canvas {
+            width: 100%;
+            height: 200px;
+            border-radius: 8px;
+        }
+        
         /* 响应式设计 */
         @media (max-width: 768px) {
             .main-container {
@@ -826,6 +863,34 @@
             </div>
         </div>
         
+        <!-- 实时图表 -->
+        <div class="charts-container">
+            <div class="chart-card">
+                <h4 class="chart-title">CPU使用率</h4>
+                <canvas id="cpuChart" width="400" height="200"></canvas>
+            </div>
+            <div class="chart-card">
+                <h4 class="chart-title">内存使用率</h4>
+                <canvas id="memoryChart" width="400" height="200"></canvas>
+            </div>
+            <div class="chart-card">
+                <h4 class="chart-title">实时流量</h4>
+                <canvas id="trafficChart" width="400" height="200"></canvas>
+            </div>
+            <div class="chart-card">
+                <h4 class="chart-title">Goroutines数量</h4>
+                <canvas id="goroutinesChart" width="400" height="200"></canvas>
+            </div>
+            <div class="chart-card">
+                <h4 class="chart-title">网络接收速度</h4>
+                <canvas id="networkRxChart" width="400" height="200"></canvas>
+            </div>
+            <div class="chart-card">
+                <h4 class="chart-title">网络发送速度</h4>
+                <canvas id="networkTxChart" width="400" height="200"></canvas>
+            </div>
+        </div>
+        
         <!-- 统计卡片 -->
         <div class="stats-grid">
             <div class="stat-card fade-in-up">
@@ -852,9 +917,6 @@
                 </button>
                 <button class="btn btn-success" onclick="refreshTasks()">
                     <i class="bi bi-arrow-clockwise"></i> 刷新
-                </button>
-                <button class="btn btn-outline-secondary" onclick="exportTasks()">
-                    <i class="bi bi-download"></i> 导出
                 </button>
                 <div class="ms-auto text-muted">
                     <small>按 Ctrl+R 刷新，Ctrl+N 新建任务</small>
@@ -1222,6 +1284,7 @@
     </div>
 
     <script src="js/bootstrap.bundle.min.js"></script>
+    <script src="js/chart.min.js"></script>
     <script src="js/app.js"></script>
 </body>
 </html>

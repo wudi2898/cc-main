@@ -1,6 +1,10 @@
 // 全局变量
 let eventSource = null;
 let tasks = [];
+
+// 图表相关
+let cpuChart, memoryChart, trafficChart, goroutinesChart, networkRxChart, networkTxChart;
+
 let currentTask = null;
 let autoRefreshInterval = null;
 
@@ -17,6 +21,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // 记录启动时间
     window.startTime = Date.now();
     
+    initCharts();
     initSSE();
     refreshTasks();
     startAutoRefresh();
@@ -24,6 +29,302 @@ document.addEventListener('DOMContentLoaded', function() {
     // 添加键盘快捷键
     document.addEventListener('keydown', handleKeyboardShortcuts);
 });
+
+// 初始化图表
+function initCharts() {
+    // CPU使用率图表 - 实时折线图
+    const cpuCtx = document.getElementById('cpuChart').getContext('2d');
+    cpuChart = new Chart(cpuCtx, {
+        type: 'line',
+        data: {
+            labels: ['当前'],
+            datasets: [{
+                label: 'CPU使用率 (%)',
+                data: [0],
+                borderColor: '#28a745',
+                backgroundColor: 'rgba(40, 167, 69, 0.2)',
+                borderWidth: 3,
+                fill: true,
+                tension: 0.4,
+                pointRadius: 6,
+                pointHoverRadius: 8
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 100,
+                    ticks: {
+                        callback: function(value) {
+                            return value + '%';
+                        }
+                    }
+                },
+                x: {
+                    display: false
+                }
+            },
+            plugins: {
+                legend: {
+                    display: false
+                }
+            }
+        }
+    });
+
+    // 内存使用率图表 - 实时折线图
+    const memoryCtx = document.getElementById('memoryChart').getContext('2d');
+    memoryChart = new Chart(memoryCtx, {
+        type: 'line',
+        data: {
+            labels: ['当前'],
+            datasets: [{
+                label: '内存使用率 (%)',
+                data: [0],
+                borderColor: '#17a2b8',
+                backgroundColor: 'rgba(23, 162, 184, 0.2)',
+                borderWidth: 3,
+                fill: true,
+                tension: 0.4,
+                pointRadius: 6,
+                pointHoverRadius: 8
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 100,
+                    ticks: {
+                        callback: function(value) {
+                            return value + '%';
+                        }
+                    }
+                },
+                x: {
+                    display: false
+                }
+            },
+            plugins: {
+                legend: {
+                    display: false
+                }
+            }
+        }
+    });
+
+    // 实时流量图表 - 折线图
+    const trafficCtx = document.getElementById('trafficChart').getContext('2d');
+    trafficChart = new Chart(trafficCtx, {
+        type: 'line',
+        data: {
+            labels: ['当前'],
+            datasets: [{
+                label: '总请求数',
+                data: [0],
+                borderColor: '#ffc107',
+                backgroundColor: 'rgba(255, 193, 7, 0.2)',
+                borderWidth: 3,
+                fill: true,
+                tension: 0.4,
+                pointRadius: 6,
+                pointHoverRadius: 8
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return value.toLocaleString();
+                        }
+                    }
+                },
+                x: {
+                    display: false
+                }
+            },
+            plugins: {
+                legend: {
+                    display: false
+                }
+            }
+        }
+    });
+
+    // Goroutines数量图表 - 折线图
+    const goroutinesCtx = document.getElementById('goroutinesChart').getContext('2d');
+    goroutinesChart = new Chart(goroutinesCtx, {
+        type: 'line',
+        data: {
+            labels: ['当前'],
+            datasets: [{
+                label: 'Goroutines数量',
+                data: [0],
+                borderColor: '#6f42c1',
+                backgroundColor: 'rgba(111, 66, 193, 0.2)',
+                borderWidth: 3,
+                fill: true,
+                tension: 0.4,
+                pointRadius: 6,
+                pointHoverRadius: 8
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return value.toLocaleString();
+                        }
+                    }
+                },
+                x: {
+                    display: false
+                }
+            },
+            plugins: {
+                legend: {
+                    display: false
+                }
+            }
+        }
+    });
+
+    // 网络接收速度图表 - 折线图
+    const networkRxCtx = document.getElementById('networkRxChart').getContext('2d');
+    networkRxChart = new Chart(networkRxCtx, {
+        type: 'line',
+        data: {
+            labels: ['当前'],
+            datasets: [{
+                label: '网络接收速度 (MB/s)',
+                data: [0],
+                borderColor: '#dc3545',
+                backgroundColor: 'rgba(220, 53, 69, 0.2)',
+                borderWidth: 3,
+                fill: true,
+                tension: 0.4,
+                pointRadius: 6,
+                pointHoverRadius: 8
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return value.toFixed(2) + ' MB/s';
+                        }
+                    }
+                },
+                x: {
+                    display: false
+                }
+            },
+            plugins: {
+                legend: {
+                    display: false
+                }
+            }
+        }
+    });
+
+    // 网络发送速度图表 - 折线图
+    const networkTxCtx = document.getElementById('networkTxChart').getContext('2d');
+    networkTxChart = new Chart(networkTxCtx, {
+        type: 'line',
+        data: {
+            labels: ['当前'],
+            datasets: [{
+                label: '网络发送速度 (MB/s)',
+                data: [0],
+                borderColor: '#fd7e14',
+                backgroundColor: 'rgba(253, 126, 20, 0.2)',
+                borderWidth: 3,
+                fill: true,
+                tension: 0.4,
+                pointRadius: 6,
+                pointHoverRadius: 8
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return value.toFixed(2) + ' MB/s';
+                        }
+                    }
+                },
+                x: {
+                    display: false
+                }
+            },
+            plugins: {
+                legend: {
+                    display: false
+                }
+            }
+        }
+    });
+}
+
+// 更新图表数据 - 只显示当前实时数据
+function updateCharts(serverStats, totalRequests) {
+    // 更新CPU图表 - 折线图显示当前值
+    if (cpuChart) {
+        cpuChart.data.datasets[0].data = [serverStats.cpu_usage];
+        cpuChart.update('none');
+    }
+    
+    // 更新内存图表 - 折线图显示当前值
+    if (memoryChart) {
+        memoryChart.data.datasets[0].data = [serverStats.memory_usage];
+        memoryChart.update('none');
+    }
+    
+    // 更新流量图表 - 折线图显示当前值
+    if (trafficChart) {
+        trafficChart.data.datasets[0].data = [totalRequests];
+        trafficChart.update('none');
+    }
+    
+    // 更新Goroutines图表 - 折线图显示当前值
+    if (goroutinesChart) {
+        goroutinesChart.data.datasets[0].data = [serverStats.goroutines];
+        goroutinesChart.update('none');
+    }
+    
+    // 更新网络接收速度图表 - 折线图显示当前值
+    if (networkRxChart) {
+        networkRxChart.data.datasets[0].data = [serverStats.network_rx];
+        networkRxChart.update('none');
+    }
+    
+    // 更新网络发送速度图表 - 折线图显示当前值
+    if (networkTxChart) {
+        networkTxChart.data.datasets[0].data = [serverStats.network_tx];
+        networkTxChart.update('none');
+    }
+}
 
 // 键盘快捷键
 function handleKeyboardShortcuts(e) {
@@ -77,7 +378,10 @@ function startAutoRefresh() {
     if (autoRefreshInterval) {
         clearInterval(autoRefreshInterval);
     }
-    autoRefreshInterval = setInterval(refreshTasks, 5000); // 5秒刷新一次，提高实时性
+    autoRefreshInterval = setInterval(() => {
+        refreshTasks();
+        updateServerStats(); // 同时更新服务器统计和图表
+    }, 2000); // 2秒刷新一次，提高实时性
 }
 
 // 显示加载状态
@@ -464,9 +768,13 @@ function updateSystemStats() {
 // 更新服务器性能统计
 async function updateServerStats() {
     try {
-        const response = await fetch(API_BASE + '/server-stats');
-        if (response.ok) {
-            const stats = await response.json();
+        const [serverResponse, trafficResponse] = await Promise.all([
+            fetch(API_BASE + '/server-stats'),
+            fetch(API_BASE + '/traffic-stats')
+        ]);
+        
+        if (serverResponse.ok) {
+            const stats = await serverResponse.json();
             
             // 更新服务器性能显示
             const cpuElement = document.getElementById('serverCPU');
@@ -489,6 +797,12 @@ async function updateServerStats() {
                 const hours = Math.floor(stats.uptime / 3600);
                 const minutes = Math.floor((stats.uptime % 3600) / 60);
                 uptimeElement.textContent = `${hours}h ${minutes}m`;
+            }
+            
+            // 更新图表数据
+            if (trafficResponse.ok) {
+                const trafficStats = await trafficResponse.json();
+                updateCharts(stats, trafficStats.total_requests);
             }
         }
     } catch (error) {
@@ -948,27 +1262,6 @@ async function loadAllTasksLogs() {
     }
 }
 
-// 导出任务
-function exportTasks() {
-    if (!tasks || !Array.isArray(tasks) || tasks.length === 0) {
-        showToast('没有任务可导出', 'warning');
-        return;
-    }
-    
-    const dataStr = JSON.stringify(tasks, null, 2);
-    const dataBlob = new Blob([dataStr], {type: 'application/json'});
-    const url = URL.createObjectURL(dataBlob);
-    
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `tasks_${new Date().toISOString().split('T')[0]}.json`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-    
-    showToast('任务列表已导出', 'success');
-}
 
 // 更新任务列表中的任务
 function updateTaskInList(updatedTask) {

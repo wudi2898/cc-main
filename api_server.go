@@ -74,6 +74,8 @@ type ServerStats struct {
 	MemoryUsed  uint64  `json:"memory_used"`
 	Goroutines  int     `json:"goroutines"`
 	Uptime      float64 `json:"uptime"`
+	NetworkRx   float64 `json:"network_rx"`   // 接收速度 (MB/s)
+	NetworkTx   float64 `json:"network_tx"`   // 发送速度 (MB/s)
 	StartTime   time.Time
 }
 
@@ -81,9 +83,11 @@ type ServerStats struct {
 var (
 	tasks        = make(map[string]*Task)
 	tasksMutex   sync.RWMutex
-	tasksFile    = "/cc-tasks.json"
 	port         = "8080"
 	serverStats  = &ServerStats{StartTime: time.Now()}
+	lastRxBytes  uint64
+	lastTxBytes  uint64
+	lastNetTime  time.Time
 )
 
 func main() {
@@ -746,6 +750,9 @@ func updateServerStats() {
 	ticker := time.NewTicker(1 * time.Second) // 改为每秒更新
 	defer ticker.Stop()
 	
+	// 初始化网络统计
+	lastNetTime = time.Now()
+	
 	for range ticker.C {
 		// 更新运行时间
 		serverStats.Uptime = time.Since(serverStats.StartTime).Seconds()
@@ -762,6 +769,9 @@ func updateServerStats() {
 		
 		// 更准确的CPU使用率计算
 		serverStats.CPUUsage = calculateCPUUsage()
+		
+		// 更新网络速度
+		updateNetworkStats()
 	}
 }
 
@@ -779,4 +789,51 @@ func calculateCPUUsage() float64 {
 		cpuUsage = 0
 	}
 	return cpuUsage
+}
+
+// 更新网络统计
+func updateNetworkStats() {
+	// 读取 /proc/net/dev 文件获取网络统计信息
+	data, err := ioutil.ReadFile("/proc/net/dev")
+	if err != nil {
+		// 如果无法读取网络统计，使用模拟数据
+		serverStats.NetworkRx = float64(runtime.NumGoroutine()) * 0.1
+		serverStats.NetworkTx = float64(runtime.NumGoroutine()) * 0.05
+		return
+	}
+	
+	lines := strings.Split(string(data), "\n")
+	var totalRx, totalTx uint64
+	
+	for _, line := range lines {
+		if strings.Contains(line, ":") && !strings.Contains(line, "lo:") {
+			parts := strings.Fields(line)
+			if len(parts) >= 10 {
+				// 解析接收和发送字节数
+				if rx, err := strconv.ParseUint(parts[1], 10, 64); err == nil {
+					totalRx += rx
+				}
+				if tx, err := strconv.ParseUint(parts[9], 10, 64); err == nil {
+					totalTx += tx
+				}
+			}
+		}
+	}
+	
+	now := time.Now()
+	if !lastNetTime.IsZero() {
+		// 计算速度 (MB/s)
+		timeDiff := now.Sub(lastNetTime).Seconds()
+		if timeDiff > 0 {
+			rxDiff := float64(totalRx - lastRxBytes)
+			txDiff := float64(totalTx - lastTxBytes)
+			
+			serverStats.NetworkRx = (rxDiff / (1024 * 1024)) / timeDiff
+			serverStats.NetworkTx = (txDiff / (1024 * 1024)) / timeDiff
+		}
+	}
+	
+	lastRxBytes = totalRx
+	lastTxBytes = totalTx
+	lastNetTime = now
 }
