@@ -125,6 +125,12 @@ func parseArgs() *Config {
 	flag.IntVar(&config.ScheduleDuration, "schedule-duration", config.ScheduleDuration, "每次执行时长（分钟）")
 	flag.Parse()
 	
+	// 调试输出
+	fmt.Printf("🔍 解析的参数:\n")
+	fmt.Printf("  URL: %s\n", config.TargetURL)
+	fmt.Printf("  Mode: %s\n", config.Mode)
+	fmt.Printf("  RandomPath: %v\n", config.RandomPath)
+	
 	// 如果还有位置参数，使用它们
 	args := flag.Args()
 	if len(args) >= 4 {

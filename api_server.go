@@ -86,6 +86,9 @@ func main() {
 	// 加载任务列表
 	loadTasks()
 	
+	// 启动时关闭所有运行中的任务
+	stopAllRunningTasks()
+	
 	// 创建路由器
 	r := mux.NewRouter()
 	
@@ -464,6 +467,8 @@ func startTaskProcess(task *Task) {
 		"-schedule-duration", strconv.Itoa(task.ScheduleDuration),
 	)
 	
+	log.Printf("🔧 执行命令: %s", strings.Join(cmd.Args, " "))
+	
 	
 	// 设置工作目录
 	cmd.Dir = "."
@@ -597,6 +602,38 @@ func loadTasks() {
 	tasksMutex.Unlock()
 	
 	log.Printf("✅ 加载了 %d 个任务", len(taskList))
+}
+
+// 停止所有运行中的任务
+func stopAllRunningTasks() {
+	tasksMutex.Lock()
+	defer tasksMutex.Unlock()
+	
+	stoppedCount := 0
+	for _, task := range tasks {
+		if task.Status == StatusRunning && task.Process != nil {
+			log.Printf("🛑 停止运行中的任务: %s (PID: %d)", task.Name, task.Process.Process.Pid)
+			
+			// 停止进程
+			if err := task.Process.Process.Kill(); err != nil {
+				log.Printf("❌ 停止任务失败: %v", err)
+			} else {
+				log.Printf("✅ 任务已停止: %s", task.Name)
+				stoppedCount++
+			}
+			
+			// 更新任务状态
+			task.Status = StatusStopped
+			task.Process = nil
+			task.Logs = append(task.Logs, fmt.Sprintf("[%s] 服务重启，任务已停止", time.Now().Format("15:04:05")))
+		}
+	}
+	
+	if stoppedCount > 0 {
+		log.Printf("🔄 已停止 %d 个运行中的任务", stoppedCount)
+		// 保存任务状态
+		saveTasks()
+	}
 }
 
 // 保存任务列表
