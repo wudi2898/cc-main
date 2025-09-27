@@ -107,7 +107,7 @@ func parseArgs() *Config {
 		Timeout:          10,
 		ProxyFile:        "socks5.txt",
 		CFBypass:         true,
-		RandomPath:       true,
+		RandomPath:       false, // 已禁用，避免404错误
 		RandomParams:     false, // 已禁用，不再添加随机查询参数
 		Schedule:         false,
 		ScheduleInterval: 10,
@@ -432,7 +432,9 @@ func buildFinalURL(baseURL *url.URL, config *Config) string {
 	//	finalURL.RawQuery = generateRandomParams()
 	// }
 
-	return finalURL.String()
+	finalURLStr := finalURL.String()
+	fmt.Printf("🔗 请求路径: %s\n", finalURLStr)
+	return finalURLStr
 }
 
 func setAdvancedHeaders(req *http.Request, config *Config) {
