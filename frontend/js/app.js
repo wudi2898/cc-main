@@ -737,6 +737,7 @@ function showLogsModal(taskId) {
     
     // 设置当前任务ID
     window.currentLogsTaskId = taskId;
+    document.getElementById('logsModal').setAttribute('data-task-id', taskId);
     
     // 显示弹窗
     new bootstrap.Modal(document.getElementById('logsModal')).show();
@@ -837,8 +838,8 @@ function getStatusClass(status) {
 function refreshLogsInModal() {
     const modal = document.getElementById('logsModal');
     if (modal && modal.classList.contains('show')) {
-        // 获取当前任务ID（需要从全局变量中获取）
-        const currentTaskId = window.currentLogsTaskId;
+        // 获取当前任务ID（从data属性中获取）
+        const currentTaskId = document.getElementById('logsModal').getAttribute('data-task-id');
         if (currentTaskId) {
             loadTaskLogsForModal(currentTaskId);
         }
@@ -856,6 +857,9 @@ function showAllLogsModal() {
     document.getElementById('logsTaskName').textContent = '所有任务';
     document.getElementById('logsTaskUrl').textContent = '系统日志';
     document.getElementById('logsTaskStatus').textContent = '系统';
+    
+    // 设置当前任务ID为特殊值
+    document.getElementById('logsModal').setAttribute('data-task-id', 'all');
     document.getElementById('logsTaskStatus').className = 'badge bg-info';
     
     // 清空日志容器
@@ -942,6 +946,12 @@ function addLogEntry(taskId, logEntry) {
         task.logs.push(logEntry);
         if (task.logs.length > 100) {
             task.logs = task.logs.slice(-100); // 只保留最近100条日志
+        }
+        
+        // 如果当前任务日志弹窗打开，实时更新显示
+        const currentTaskId = document.getElementById('logsModal').getAttribute('data-task-id');
+        if (currentTaskId === taskId || currentTaskId === 'all') {
+            addLogEntryToModal(logEntry);
         }
     }
 }

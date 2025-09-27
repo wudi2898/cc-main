@@ -65,6 +65,8 @@ var stats = &Stats{
 var proxies []string
 
 func main() {
+	fmt.Printf("🎯 CC压力测试工具启动中...\n")
+	
 	rand.Seed(time.Now().UnixNano())
 
 	// 解析命令行参数
@@ -72,8 +74,7 @@ func main() {
 
 	// 加载代理
 	loadProxies(config.ProxyFile)
-
-	// 移除启动信息输出
+	fmt.Printf("🔗 已加载 %d 个代理\n", len(proxies))
 
 	// 启动统计协程
 	go statsReporter()
@@ -156,7 +157,7 @@ func loadProxies(filename string) {
 		}
 	}
 
-	// 移除代理加载信息输出
+	fmt.Printf("✅ 代理加载完成\n")
 }
 
 func startAttack(config *Config) {
@@ -195,7 +196,7 @@ func startScheduledAttack(config *Config) {
 	if config.ScheduleInterval <= 0 {
 		return
 	}
-	fmt.Println("🕐 启动定时攻击模式...")
+	fmt.Printf("🕐 启动定时攻击模式: 每%d分钟执行一次，每次%d分钟\n", config.ScheduleInterval, config.ScheduleDuration)
 	ticker := time.NewTicker(time.Duration(config.ScheduleInterval) * time.Minute)
 	defer ticker.Stop()
 
@@ -209,6 +210,9 @@ func executeAttack(config *Config, durationMinutes int) {
 	if config.RPS <= 0 {
 		return
 	}
+	
+	fmt.Printf("🚀 开始攻击: %s\n", config.TargetURL)
+	fmt.Printf("📊 配置: 线程数=%d, RPS=%d, 持续时间=%d分钟\n", config.Threads, config.RPS, durationMinutes)
 	
 	// 高并发配置，支持亿万级并发
 	threads := config.Threads
@@ -260,25 +264,28 @@ func executeAttack(config *Config, durationMinutes int) {
 	done := make(chan struct{})
 	var wg sync.WaitGroup
 	
-		// 启动大量worker goroutines
-		for i := 0; i < threads; i++ {
-			wg.Add(1)
-			if config.FireAndForget {
-				go func() {
-					defer wg.Done()
-					fireAndForgetWorker(config, semaphore, done)
-				}()
-			} else {
-				go func() {
-					defer wg.Done()
-					highConcurrencyWorker(config, semaphore, done)
-				}()
-			}
+	// 启动大量worker goroutines
+	fmt.Printf("🔄 启动 %d 个worker线程...\n", threads)
+	for i := 0; i < threads; i++ {
+		wg.Add(1)
+		if config.FireAndForget {
+			go func() {
+				defer wg.Done()
+				fireAndForgetWorker(config, semaphore, done)
+			}()
+		} else {
+			go func() {
+				defer wg.Done()
+				highConcurrencyWorker(config, semaphore, done)
+			}()
 		}
+	}
 
 	duration := time.Duration(durationMinutes) * time.Minute
+	fmt.Printf("⏱️ 攻击将持续 %d 分钟...\n", durationMinutes)
 	time.Sleep(duration)
 
+	fmt.Printf("🛑 攻击时间结束，正在停止...\n")
 	close(done)
 	wg.Wait()
 
@@ -740,7 +747,11 @@ func statsReporter() {
 			stats.AvgRPS = float64(stats.TotalRequests) / uptime
 		}
 
-		// 移除实时统计输出
+		// 输出实时统计信息
+		fmt.Printf("📊 实时统计: 总请求=%d, 成功=%d, 失败=%d, 当前RPS=%.2f, 平均RPS=%.2f, 运行时间=%.2fs\n", 
+			stats.TotalRequests, stats.SuccessfulReqs, stats.FailedReqs, stats.CurrentRPS, stats.AvgRPS, uptime)
+		fmt.Printf("STATS_JSON:{\"total_requests\":%d,\"successful_reqs\":%d,\"failed_reqs\":%d,\"current_rps\":%.2f,\"avg_rps\":%.2f,\"uptime\":%.2f}\n", 
+			stats.TotalRequests, stats.SuccessfulReqs, stats.FailedReqs, stats.CurrentRPS, stats.AvgRPS, uptime)
 
 		stats.mu.Unlock()
 	}
