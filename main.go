@@ -198,19 +198,21 @@ func startAttack(config *Config) {
 
 func startScheduledAttack(config *Config) {
 	fmt.Println("🕐 启动定时攻击模式...")
-	
-	// 立即执行第一次攻击
-	fmt.Println("🚀 开始第一次攻击...")
-	executeAttack(config, config.ScheduleDuration)
+	fmt.Printf("📅 执行计划：每%d分钟执行一次，每次%d分钟\n", config.ScheduleInterval, config.ScheduleDuration)
+	fmt.Printf("🔄 配置一次，持续循环执行\n")
 	
 	// 创建定时器
 	ticker := time.NewTicker(time.Duration(config.ScheduleInterval) * time.Minute)
 	defer ticker.Stop()
 	
-	// 定时执行
-	for range ticker.C {
-		fmt.Printf("🕐 定时器触发，开始新一轮攻击...\n")
+	// 持续循环执行
+	for {
+		fmt.Printf("🚀 开始攻击...\n")
 		executeAttack(config, config.ScheduleDuration)
+		
+		fmt.Printf("💤 等待 %d 分钟后开始下一轮...\n", config.ScheduleInterval)
+		// 等待下一次定时器触发
+		<-ticker.C
 	}
 }
 
@@ -243,7 +245,7 @@ func executeAttack(config *Config, durationMinutes int) {
 	
 	// 打印本轮统计
 	printFinalStats()
-	fmt.Printf("💤 等待 %d 分钟后开始下一轮攻击...\n", config.ScheduleInterval)
+	fmt.Printf("✅ 本轮攻击完成\n")
 }
 
 func worker(config *Config, rateLimit <-chan time.Time, done <-chan struct{}) {
