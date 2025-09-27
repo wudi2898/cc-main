@@ -5,6 +5,20 @@ let tasks = [];
 // 图表相关
 let cpuChart, memoryChart, trafficChart, goroutinesChart, networkRxChart, networkTxChart;
 
+// 图表数据存储
+let chartData = {
+    labels: [],
+    cpu: [],
+    memory: [],
+    traffic: [],
+    goroutines: [],
+    networkRx: [],
+    networkTx: []
+};
+
+// 最大数据点数量
+const MAX_DATA_POINTS = 6000; // 保留最近6000个数据点
+
 let currentTask = null;
 let autoRefreshInterval = null;
 
@@ -51,17 +65,17 @@ function initCharts() {
     cpuChart = new Chart(cpuCtx, {
         type: 'line',
         data: {
-            labels: ['当前'],
+            labels: chartData.labels,
             datasets: [{
                 label: 'CPU使用率 (%)',
-                data: [0],
+                data: chartData.cpu,
                 borderColor: '#28a745',
                 backgroundColor: 'rgba(40, 167, 69, 0.2)',
-                borderWidth: 3,
+                borderWidth: 2,
                 fill: true,
                 tension: 0.4,
-                pointRadius: 6,
-                pointHoverRadius: 8
+                pointRadius: 3,
+                pointHoverRadius: 5
             }]
         },
         options: {
@@ -108,17 +122,17 @@ function initCharts() {
     memoryChart = new Chart(memoryCtx, {
         type: 'line',
         data: {
-            labels: ['当前'],
+            labels: chartData.labels,
             datasets: [{
                 label: '内存使用率 (%)',
-                data: [0],
+                data: chartData.memory,
                 borderColor: '#17a2b8',
                 backgroundColor: 'rgba(23, 162, 184, 0.2)',
-                borderWidth: 3,
+                borderWidth: 2,
                 fill: true,
                 tension: 0.4,
-                pointRadius: 6,
-                pointHoverRadius: 8
+                pointRadius: 3,
+                pointHoverRadius: 5
             }]
         },
         options: {
@@ -165,17 +179,17 @@ function initCharts() {
     trafficChart = new Chart(trafficCtx, {
         type: 'line',
         data: {
-            labels: ['当前'],
+            labels: chartData.labels,
             datasets: [{
                 label: '总请求数',
-                data: [0],
+                data: chartData.traffic,
                 borderColor: '#ffc107',
                 backgroundColor: 'rgba(255, 193, 7, 0.2)',
-                borderWidth: 3,
+                borderWidth: 2,
                 fill: true,
                 tension: 0.4,
-                pointRadius: 6,
-                pointHoverRadius: 8
+                pointRadius: 3,
+                pointHoverRadius: 5
             }]
         },
         options: {
@@ -221,17 +235,17 @@ function initCharts() {
     goroutinesChart = new Chart(goroutinesCtx, {
         type: 'line',
         data: {
-            labels: ['当前'],
+            labels: chartData.labels,
             datasets: [{
                 label: 'Goroutines数量',
-                data: [0],
+                data: chartData.goroutines,
                 borderColor: '#6f42c1',
                 backgroundColor: 'rgba(111, 66, 193, 0.2)',
-                borderWidth: 3,
+                borderWidth: 2,
                 fill: true,
                 tension: 0.4,
-                pointRadius: 6,
-                pointHoverRadius: 8
+                pointRadius: 3,
+                pointHoverRadius: 5
             }]
         },
         options: {
@@ -277,17 +291,17 @@ function initCharts() {
     networkRxChart = new Chart(networkRxCtx, {
         type: 'line',
         data: {
-            labels: ['当前'],
+            labels: chartData.labels,
             datasets: [{
                 label: '网络接收速度 (MB/s)',
-                data: [0],
+                data: chartData.networkRx,
                 borderColor: '#dc3545',
                 backgroundColor: 'rgba(220, 53, 69, 0.2)',
-                borderWidth: 3,
+                borderWidth: 2,
                 fill: true,
                 tension: 0.4,
-                pointRadius: 6,
-                pointHoverRadius: 8
+                pointRadius: 3,
+                pointHoverRadius: 5
             }]
         },
         options: {
@@ -333,17 +347,17 @@ function initCharts() {
     networkTxChart = new Chart(networkTxCtx, {
         type: 'line',
         data: {
-            labels: ['当前'],
+            labels: chartData.labels,
             datasets: [{
                 label: '网络发送速度 (MB/s)',
-                data: [0],
+                data: chartData.networkTx,
                 borderColor: '#fd7e14',
                 backgroundColor: 'rgba(253, 126, 20, 0.2)',
-                borderWidth: 3,
+                borderWidth: 2,
                 fill: true,
                 tension: 0.4,
-                pointRadius: 6,
-                pointHoverRadius: 8
+                pointRadius: 3,
+                pointHoverRadius: 5
             }]
         },
         options: {
@@ -382,7 +396,7 @@ function initCharts() {
     console.log('图表初始化完成');
 }
 
-// 更新图表数据 - 只显示当前实时数据
+// 更新图表数据 - 时间序列折线图
 function updateCharts(serverStats, totalRequests) {
     console.log('更新图表数据:', { 
         serverStats, 
@@ -394,54 +408,83 @@ function updateCharts(serverStats, totalRequests) {
         network_tx: serverStats.network_tx
     });
     
-    // 更新CPU图表 - 折线图显示当前值
+    // 获取当前时间
+    const now = new Date();
+    const timeLabel = now.toLocaleTimeString('zh-CN', { 
+        hour: '2-digit', 
+        minute: '2-digit', 
+        second: '2-digit' 
+    });
+    
+    // 添加新数据点
+    chartData.labels.push(timeLabel);
+    chartData.cpu.push(serverStats.cpu_usage);
+    chartData.memory.push(serverStats.memory_usage);
+    chartData.traffic.push(totalRequests);
+    chartData.goroutines.push(serverStats.goroutines);
+    chartData.networkRx.push(serverStats.network_rx);
+    chartData.networkTx.push(serverStats.network_tx);
+    
+    // 保持数据点数量在限制范围内
+    if (chartData.labels.length > MAX_DATA_POINTS) {
+        chartData.labels.shift();
+        chartData.cpu.shift();
+        chartData.memory.shift();
+        chartData.traffic.shift();
+        chartData.goroutines.shift();
+        chartData.networkRx.shift();
+        chartData.networkTx.shift();
+    }
+    
+    // 更新所有图表
     if (cpuChart) {
-        cpuChart.data.datasets[0].data = [serverStats.cpu_usage];
+        cpuChart.data.labels = chartData.labels;
+        cpuChart.data.datasets[0].data = chartData.cpu;
         cpuChart.update('none');
         console.log('CPU图表已更新:', serverStats.cpu_usage);
     } else {
         console.error('cpuChart 未初始化');
     }
     
-    // 更新内存图表 - 折线图显示当前值
     if (memoryChart) {
-        memoryChart.data.datasets[0].data = [serverStats.memory_usage];
+        memoryChart.data.labels = chartData.labels;
+        memoryChart.data.datasets[0].data = chartData.memory;
         memoryChart.update('none');
         console.log('内存图表已更新:', serverStats.memory_usage);
     } else {
         console.error('memoryChart 未初始化');
     }
     
-    // 更新流量图表 - 折线图显示当前值
     if (trafficChart) {
-        trafficChart.data.datasets[0].data = [totalRequests];
+        trafficChart.data.labels = chartData.labels;
+        trafficChart.data.datasets[0].data = chartData.traffic;
         trafficChart.update('none');
         console.log('流量图表已更新:', totalRequests);
     } else {
         console.error('trafficChart 未初始化');
     }
     
-    // 更新Goroutines图表 - 折线图显示当前值
     if (goroutinesChart) {
-        goroutinesChart.data.datasets[0].data = [serverStats.goroutines];
+        goroutinesChart.data.labels = chartData.labels;
+        goroutinesChart.data.datasets[0].data = chartData.goroutines;
         goroutinesChart.update('none');
         console.log('Goroutines图表已更新:', serverStats.goroutines);
     } else {
         console.error('goroutinesChart 未初始化');
     }
     
-    // 更新网络接收速度图表 - 折线图显示当前值
     if (networkRxChart) {
-        networkRxChart.data.datasets[0].data = [serverStats.network_rx];
+        networkRxChart.data.labels = chartData.labels;
+        networkRxChart.data.datasets[0].data = chartData.networkRx;
         networkRxChart.update('none');
         console.log('网络接收图表已更新:', serverStats.network_rx);
     } else {
         console.error('networkRxChart 未初始化');
     }
     
-    // 更新网络发送速度图表 - 折线图显示当前值
     if (networkTxChart) {
-        networkTxChart.data.datasets[0].data = [serverStats.network_tx];
+        networkTxChart.data.labels = chartData.labels;
+        networkTxChart.data.datasets[0].data = chartData.networkTx;
         networkTxChart.update('none');
         console.log('网络发送图表已更新:', serverStats.network_tx);
     } else {
