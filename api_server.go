@@ -452,7 +452,7 @@ func startTaskProcess(task *Task) {
 	log.Printf("🔧 构建命令参数: %s", task.TargetURL)
 	log.Printf("🔧 任务数据: URL=%s, Mode=%s, RandomPath=%v", task.TargetURL, task.Mode, task.RandomPath)
 	
-	// 构建命令
+	// 构建命令 - 按main.go中的参数顺序
 	cmd := exec.Command("./cc-go",
 		"-url", task.TargetURL,
 		"-mode", task.Mode,
@@ -461,11 +461,11 @@ func startTaskProcess(task *Task) {
 		"-duration", strconv.Itoa(task.Duration),
 		"-timeout", strconv.Itoa(task.Timeout),
 		"-cf-bypass", strconv.FormatBool(task.CFBypass),
-		"-random-path", strconv.FormatBool(task.RandomPath),
 		"-random-params", strconv.FormatBool(task.RandomParams),
 		"-schedule", strconv.FormatBool(task.Schedule),
 		"-schedule-interval", strconv.Itoa(task.ScheduleInterval),
 		"-schedule-duration", strconv.Itoa(task.ScheduleDuration),
+		"-random-path", strconv.FormatBool(task.RandomPath),
 	)
 	
 	log.Printf("🔧 执行命令: %s", strings.Join(cmd.Args, " "))
@@ -562,7 +562,7 @@ func startTaskProcess(task *Task) {
 // 解析命令行参数
 func parseArgs() {
 	flag.StringVar(&port, "port", "8080", "服务器端口")
-	flag.StringVar(&tasksFile, "tasks-file", "/cc-tasks.json", "任务列表文件路径")
+	flag.StringVar(&tasksFile, "tasks-file", "./cc-tasks.json", "任务列表文件路径")
 	flag.Parse()
 }
 

