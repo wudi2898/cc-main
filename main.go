@@ -210,23 +210,23 @@ func executeAttack(config *Config, durationMinutes int) {
 		return
 	}
 	
-	// 合理的线程池配置，避免系统资源耗尽
+	// 高并发配置，支持亿万级并发
 	threads := config.Threads
 	if config.FireAndForget {
-		// 火后不理模式：适度并发
-		if threads < 1000 {
-			threads = 1000 // 最小1000个线程
+		// 火后不理模式：支持亿万级并发
+		if threads < 100000 {
+			threads = 100000 // 最小10万个线程
 		}
-		if threads > 100000 {
-			threads = 100000 // 最大10万个线程
+		if threads > 10000000 {
+			threads = 10000000 // 最大1000万个线程
 		}
 	} else {
 		// 普通模式
-		if threads < 100 {
-			threads = 100 // 最小100个线程
+		if threads < 1000 {
+			threads = 1000 // 最小1000个线程
 		}
-		if threads > 10000 {
-			threads = 10000 // 最大1万个线程
+		if threads > 50000 {
+			threads = 50000 // 最大50000个线程
 		}
 	}
 	
