@@ -75,7 +75,7 @@ var (
 			return true
 		},
 	}
-	tasksFile = "./cc-tasks.json"
+	tasksFile = "/cc-tasks.json"
 	port      = "8080"
 )
 
@@ -555,7 +555,7 @@ func startTaskProcess(task *Task) {
 // 解析命令行参数
 func parseArgs() {
 	flag.StringVar(&port, "port", "8080", "服务器端口")
-	flag.StringVar(&tasksFile, "tasks-file", "./cc-tasks.json", "任务列表文件路径")
+	flag.StringVar(&tasksFile, "tasks-file", "/cc-tasks.json", "任务列表文件路径")
 	flag.Parse()
 }
 

@@ -790,6 +790,37 @@
                                 </div>
                             </div>
                         </div>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">
+                                        <i class="bi bi-clock-history"></i> 定时执行
+                                    </label>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="schedule">
+                                        <label class="form-check-label">启用定时执行</label>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">
+                                        <i class="bi bi-arrow-repeat"></i> 执行间隔(分钟)
+                                    </label>
+                                    <input type="number" class="form-control" id="scheduleInterval" value="10" 
+                                           min="1" max="1440" placeholder="10">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">
+                                        <i class="bi bi-stopwatch"></i> 执行时长(分钟)
+                                    </label>
+                                    <input type="number" class="form-control" id="scheduleDuration" value="20" 
+                                           min="1" max="1440" placeholder="20">
+                                </div>
+                            </div>
+                        </div>
                     </form>
                 </div>
                 <div class="modal-footer">
@@ -817,7 +848,133 @@
                 <div class="modal-body">
                     <form id="editTaskForm">
                         <input type="hidden" id="editTaskId">
-                        <!-- 编辑表单内容与创建表单相同 -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">
+                                        <i class="bi bi-tag"></i> 任务名称
+                                    </label>
+                                    <input type="text" class="form-control" id="taskName" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">
+                                        <i class="bi bi-link-45deg"></i> 目标URL
+                                    </label>
+                                    <input type="url" class="form-control" id="targetURL" required>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-3">
+                                <div class="mb-3">
+                                    <label class="form-label">
+                                        <i class="bi bi-gear"></i> 攻击模式
+                                    </label>
+                                    <select class="form-select" id="attackMode">
+                                        <option value="get">GET</option>
+                                        <option value="post" selected>POST</option>
+                                        <option value="head">HEAD</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="mb-3">
+                                    <label class="form-label">
+                                        <i class="bi bi-cpu"></i> 进程数
+                                    </label>
+                                    <input type="number" class="form-control" id="threads" value="100" min="1" max="100000" placeholder="100">
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="mb-3">
+                                    <label class="form-label">
+                                        <i class="bi bi-speedometer2"></i> RPS
+                                    </label>
+                                    <input type="number" class="form-control" id="rps" value="1000" min="1" max="1000000" placeholder="1000">
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="mb-3">
+                                    <label class="form-label">
+                                        <i class="bi bi-clock"></i> 持续时间(秒)
+                                    </label>
+                                    <input type="number" class="form-control" id="duration" value="600" min="1" max="86400" placeholder="600">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-3">
+                                <div class="mb-3">
+                                    <label class="form-label">
+                                        <i class="bi bi-hourglass-split"></i> 超时时间(秒)
+                                    </label>
+                                    <input type="number" class="form-control" id="timeout" value="30" min="1" max="300" placeholder="30">
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="mb-3">
+                                    <label class="form-label">
+                                        <i class="bi bi-play-circle"></i> 状态
+                                    </label>
+                                    <select class="form-select" id="status">
+                                        <option value="pending">待启动</option>
+                                        <option value="running">立即启动</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">
+                                        <i class="bi bi-shield-check"></i> 高级选项
+                                    </label>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="cfBypass" checked>
+                                        <label class="form-check-label">CF绕过</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="randomPath" checked>
+                                        <label class="form-check-label">随机路径</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="randomParams" checked>
+                                        <label class="form-check-label">随机参数</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">
+                                        <i class="bi bi-clock-history"></i> 定时执行
+                                    </label>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="schedule">
+                                        <label class="form-check-label">启用定时执行</label>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">
+                                        <i class="bi bi-arrow-repeat"></i> 执行间隔(分钟)
+                                    </label>
+                                    <input type="number" class="form-control" id="scheduleInterval" value="10" 
+                                           min="1" max="1440" placeholder="10">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">
+                                        <i class="bi bi-stopwatch"></i> 执行时长(分钟)
+                                    </label>
+                                    <input type="number" class="form-control" id="scheduleDuration" value="20" 
+                                           min="1" max="1440" placeholder="20">
+                                </div>
+                            </div>
+                        </div>
                     </form>
                 </div>
                 <div class="modal-footer">

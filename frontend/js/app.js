@@ -564,6 +564,9 @@ function editTask(taskId) {
     form.querySelector('#cfBypass').checked = task.cf_bypass;
     form.querySelector('#randomPath').checked = task.random_path;
     form.querySelector('#randomParams').checked = task.random_params;
+    form.querySelector('#schedule').checked = task.schedule;
+    form.querySelector('#scheduleInterval').value = task.schedule_interval;
+    form.querySelector('#scheduleDuration').value = task.schedule_duration;
     
     // 显示编辑模态框
     new bootstrap.Modal(document.getElementById('editTaskModal')).show();
@@ -584,7 +587,10 @@ async function updateTask() {
         timeout: parseInt(form.querySelector('#timeout').value),
         cf_bypass: form.querySelector('#cfBypass').checked,
         random_path: form.querySelector('#randomPath').checked,
-        random_params: form.querySelector('#randomParams').checked
+        random_params: form.querySelector('#randomParams').checked,
+        schedule: form.querySelector('#schedule').checked,
+        schedule_interval: parseInt(form.querySelector('#scheduleInterval').value),
+        schedule_duration: parseInt(form.querySelector('#scheduleDuration').value)
     };
 
     // 验证表单

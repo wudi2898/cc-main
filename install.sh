@@ -15,7 +15,7 @@ VERSION="2.0.0"
 
 # 默认配置
 DEFAULT_PORT="8080"
-DEFAULT_TASKS_FILE="./cc-tasks.json"
+DEFAULT_TASKS_FILE="/cc-tasks.json"
 
 # 解析命令行参数
 PORT=$DEFAULT_PORT
@@ -251,29 +251,15 @@ echo -e "${GREEN}✅ API服务器构建完成${NC}"
 chmod +x cc-go api_server
 
 # 6. 创建任务存储文件
-echo "[]" > "$TASKS_FILE"
-chmod 666 "$TASKS_FILE"
-
-# 7. 检查前端文件
-echo -e "${CYAN}🎨 检查前端文件...${NC}"
-if [ ! -d "frontend" ]; then
-    echo -e "${RED}❌ 前端目录不存在${NC}"
-    exit 1
+echo -e "${CYAN}📝 初始化任务文件...${NC}"
+if [ ! -f "$TASKS_FILE" ]; then
+    echo "[]" > "$TASKS_FILE"
+    chmod 666 "$TASKS_FILE"
+    echo -e "${GREEN}✅ 任务文件创建完成: $TASKS_FILE${NC}"
+else
+    echo -e "${YELLOW}⚠️  任务文件已存在: $TASKS_FILE${NC}"
 fi
 
-if [ ! -f "frontend/css/bootstrap.min.css" ]; then
-    echo -e "${YELLOW}⚠️  下载Bootstrap CSS...${NC}"
-    mkdir -p frontend/css
-    curl -s -o frontend/css/bootstrap.min.css https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css
-fi
-
-if [ ! -f "frontend/js/bootstrap.bundle.min.js" ]; then
-    echo -e "${YELLOW}⚠️  下载Bootstrap JS...${NC}"
-    mkdir -p frontend/js
-    curl -s -o frontend/js/bootstrap.bundle.min.js https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js
-fi
-
-echo -e "${GREEN}✅ 前端文件检查完成${NC}"
 
 # 8. 创建系统服务（可选）
 echo -e "${CYAN}🔧 创建系统服务...${NC}"
@@ -316,4 +302,16 @@ echo -e "${BLUE}按 Ctrl+C 停止服务${NC}"
 echo ""
 
 # 启动API服务器
+echo -e "${GREEN}🚀 启动API服务器...${NC}"
+echo -e "${BLUE}📊 任务文件: $TASKS_FILE${NC}"
+echo -e "${BLUE}🌐 服务地址: http://$SERVER_IP:$PORT${NC}"
+echo -e "${BLUE}📱 控制面板: http://$SERVER_IP:$PORT${NC}"
+echo -e "${BLUE}📋 日志页面: http://$SERVER_IP:$PORT/logs.html${NC}"
+echo ""
+echo -e "${YELLOW}💡 定时执行功能已启用，可在控制面板中配置${NC}"
+echo -e "${YELLOW}💡 默认配置：每10分钟执行一次，每次20分钟${NC}"
+echo ""
+echo -e "${BLUE}按 Ctrl+C 停止服务${NC}"
+echo ""
+
 ./api_server -port "$PORT" -tasks-file "$TASKS_FILE"
