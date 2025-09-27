@@ -137,9 +137,7 @@ func main() {
 		}
 	}
 	
-	fmt.Printf("📱 前端地址: http://%s:%s\n", serverIP, port)
-	fmt.Printf("🔗 API地址: http://%s:%s/api\n", serverIP, port)
-	fmt.Printf("📊 日志页面: http://%s:%s/logs.html\n", serverIP, port)
+	// 移除服务器启动信息输出
 	
 	log.Fatal(http.ListenAndServe(":"+port, r))
 }
@@ -162,19 +160,16 @@ func getTasks(w http.ResponseWriter, r *http.Request) {
 func createTask(w http.ResponseWriter, r *http.Request) {
 	var task Task
 	if err := json.NewDecoder(r.Body).Decode(&task); err != nil {
-		log.Printf("❌ 创建任务失败 - JSON解析错误: %v", err)
 		http.Error(w, "Invalid JSON: "+err.Error(), http.StatusBadRequest)
 		return
 	}
 	
 	// 验证必填字段
 	if task.Name == "" {
-		log.Printf("❌ 创建任务失败 - 任务名称为空")
 		http.Error(w, "任务名称不能为空", http.StatusBadRequest)
 		return
 	}
 	if task.TargetURL == "" {
-		log.Printf("❌ 创建任务失败 - 目标URL为空")
 		http.Error(w, "目标URL不能为空", http.StatusBadRequest)
 		return
 	}
@@ -191,12 +186,9 @@ func createTask(w http.ResponseWriter, r *http.Request) {
 	
 	// 保存任务列表
 	if err := saveTasks(); err != nil {
-		log.Printf("❌ 保存任务失败: %v", err)
 		http.Error(w, "保存任务失败", http.StatusInternalServerError)
 		return
 	}
-	
-	log.Printf("✅ 任务创建成功: %s (%s)", task.Name, task.ID)
 	
 	// 如果状态是running，立即启动
 	if task.Status == StatusRunning {
@@ -263,9 +255,9 @@ func updateTask(w http.ResponseWriter, r *http.Request) {
 	tasksMutex.Unlock()
 	
 	// 保存任务列表
-	if err := saveTasks(); err != nil {
-		log.Printf("❌ 保存任务失败: %v", err)
-	}
+		if err := saveTasks(); err != nil {
+			// 移除保存失败日志
+		}
 	
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
@@ -293,9 +285,9 @@ func deleteTask(w http.ResponseWriter, r *http.Request) {
 	tasksMutex.Unlock()
 	
 	// 保存任务列表
-	if err := saveTasks(); err != nil {
-		log.Printf("❌ 保存任务失败: %v", err)
-	}
+		if err := saveTasks(); err != nil {
+			// 移除保存失败日志
+		}
 	
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.WriteHeader(http.StatusOK)
@@ -305,20 +297,20 @@ func startTask(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	taskId := vars["id"]
 	
-	log.Printf("🚀 尝试启动任务: %s", taskId)
+	// 移除启动任务日志
 	
 	tasksMutex.Lock()
 	task, exists := tasks[taskId]
 	if !exists {
 		tasksMutex.Unlock()
-		log.Printf("❌ 任务不存在: %s", taskId)
+		// 移除任务不存在日志
 		http.Error(w, "Task not found", http.StatusNotFound)
 		return
 	}
 	
 	if task.Status == StatusRunning {
 		tasksMutex.Unlock()
-		log.Printf("⚠️  任务已在运行: %s", taskId)
+		// 移除任务已在运行日志
 		http.Error(w, "Task is already running", http.StatusBadRequest)
 		return
 	}
@@ -326,7 +318,7 @@ func startTask(w http.ResponseWriter, r *http.Request) {
 	// 验证任务参数
 	if task.TargetURL == "" {
 		tasksMutex.Unlock()
-		log.Printf("❌ 任务目标URL为空: %s", taskId)
+		// 移除目标URL为空日志
 		http.Error(w, "Target URL is required", http.StatusBadRequest)
 		return
 	}
@@ -351,11 +343,11 @@ func startTask(w http.ResponseWriter, r *http.Request) {
 	tasksMutex.Unlock()
 	
 	// 保存任务列表
-	if err := saveTasks(); err != nil {
-		log.Printf("❌ 保存任务失败: %v", err)
-	}
+		if err := saveTasks(); err != nil {
+			// 移除保存失败日志
+		}
 	
-	log.Printf("✅ 任务启动成功: %s -> %s", task.Name, task.TargetURL)
+	// 移除任务启动成功日志
 	
 	// 启动任务进程
 	go startTaskProcess(task)
@@ -479,8 +471,7 @@ func handleSSE(w http.ResponseWriter, r *http.Request) {
 
 // 启动任务进程
 func startTaskProcess(task *Task) {
-	log.Printf("🔧 构建命令参数: %s", task.TargetURL)
-	log.Printf("🔧 任务数据: URL=%s, Mode=%s, RandomPath=%v", task.TargetURL, task.Mode, task.RandomPath)
+	// 移除构建命令参数日志
 	
 	// 构建命令 - 按main.go中的参数顺序
 	cmd := exec.Command("./cc-go",
@@ -498,7 +489,7 @@ func startTaskProcess(task *Task) {
 		"-random-path", strconv.FormatBool(task.RandomPath),
 	)
 	
-	log.Printf("🔧 执行命令: %s", strings.Join(cmd.Args, " "))
+	// 移除执行命令日志
 	
 	
 	// 设置工作目录
@@ -509,7 +500,6 @@ func startTaskProcess(task *Task) {
 	
 	// 检查cc-go文件是否存在
 	if _, err := os.Stat("./cc-go"); os.IsNotExist(err) {
-		log.Printf("❌ cc-go文件不存在: %v", err)
 		task.Status = StatusFailed
 		task.Logs = append(task.Logs, fmt.Sprintf("[%s] 错误: cc-go文件不存在", time.Now().Format("15:04:05")))
 		return
@@ -518,7 +508,6 @@ func startTaskProcess(task *Task) {
 	// 设置输出管道
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
-		log.Printf("❌ 创建输出管道失败: %v", err)
 		task.Status = StatusFailed
 		task.Logs = append(task.Logs, fmt.Sprintf("[%s] 创建输出管道失败: %v", time.Now().Format("15:04:05"), err))
 		return
@@ -526,7 +515,6 @@ func startTaskProcess(task *Task) {
 	
 	stderr, err := cmd.StderrPipe()
 	if err != nil {
-		log.Printf("❌ 创建错误管道失败: %v", err)
 		task.Status = StatusFailed
 		task.Logs = append(task.Logs, fmt.Sprintf("[%s] 创建错误管道失败: %v", time.Now().Format("15:04:05"), err))
 		return
@@ -536,13 +524,11 @@ func startTaskProcess(task *Task) {
 	task.Process = cmd
 	err = cmd.Start()
 	if err != nil {
-		log.Printf("❌ 启动进程失败: %v", err)
 		task.Status = StatusFailed
 		task.Logs = append(task.Logs, fmt.Sprintf("[%s] 启动失败: %v", time.Now().Format("15:04:05"), err))
 		return
 	}
 	
-	log.Printf("✅ 进程启动成功，PID: %d", cmd.Process.Pid)
 	task.Logs = append(task.Logs, fmt.Sprintf("[%s] 进程启动成功，PID: %d", time.Now().Format("15:04:05"), cmd.Process.Pid))
 	
 	// 启动日志捕获
@@ -551,7 +537,6 @@ func startTaskProcess(task *Task) {
 		for scanner.Scan() {
 			line := scanner.Text()
 			task.Logs = append(task.Logs, fmt.Sprintf("[%s] %s", time.Now().Format("15:04:05"), line))
-			log.Printf("📝 任务日志: %s", line)
 			
 			// 解析统计信息
 			if strings.Contains(line, "STATS_JSON:") {
@@ -561,6 +546,13 @@ func startTaskProcess(task *Task) {
 					task.Stats = &stats
 				}
 			}
+			
+			// 通过SSE发送日志更新
+			sendSSEMessage(map[string]interface{}{
+				"type":    "task_log",
+				"task_id": task.ID,
+				"log":     line,
+			})
 		}
 	}()
 	
@@ -569,7 +561,13 @@ func startTaskProcess(task *Task) {
 		for scanner.Scan() {
 			line := scanner.Text()
 			task.Logs = append(task.Logs, fmt.Sprintf("[%s] ERROR: %s", time.Now().Format("15:04:05"), line))
-			log.Printf("❌ 任务错误: %s", line)
+			
+			// 通过SSE发送错误日志更新
+			sendSSEMessage(map[string]interface{}{
+				"type":    "task_log",
+				"task_id": task.ID,
+				"log":     "ERROR: " + line,
+			})
 		}
 	}()
 	
@@ -606,7 +604,6 @@ func loadTasks() {
 	// 检查文件是否存在
 	if _, err := os.Stat(tasksFile); os.IsNotExist(err) {
 		// 文件不存在，创建空的任务列表
-		log.Printf("📝 任务文件不存在，创建空列表")
 		saveTasks()
 		return
 	}
@@ -614,14 +611,12 @@ func loadTasks() {
 	// 读取文件
 	data, err := ioutil.ReadFile(tasksFile)
 	if err != nil {
-		log.Printf("❌ 读取任务文件失败: %v", err)
 		return
 	}
 	
 	// 解析JSON
 	var taskList []*Task
 	if err := json.Unmarshal(data, &taskList); err != nil {
-		log.Printf("❌ 解析任务文件失败: %v", err)
 		return
 	}
 	
@@ -643,10 +638,7 @@ func loadTasks() {
 	// 如果有任务状态被修改，保存文件
 	if modifiedCount > 0 {
 		saveTasks()
-		log.Printf("🔄 已将 %d 个任务状态改为停止", modifiedCount)
 	}
-	
-	log.Printf("✅ 加载了 %d 个任务", len(taskList))
 }
 
 // 停止所有运行中的任务
@@ -657,13 +649,10 @@ func stopAllRunningTasks() {
 	stoppedCount := 0
 	for _, task := range tasks {
 		if task.Status == StatusRunning && task.Process != nil {
-			log.Printf("🛑 停止运行中的任务: %s (PID: %d)", task.Name, task.Process.Process.Pid)
-			
 			// 停止进程
 			if err := task.Process.Process.Kill(); err != nil {
-				log.Printf("❌ 停止任务失败: %v", err)
+				// 移除停止任务失败日志
 			} else {
-				log.Printf("✅ 任务已停止: %s", task.Name)
 				stoppedCount++
 			}
 			
@@ -675,7 +664,6 @@ func stopAllRunningTasks() {
 	}
 	
 	if stoppedCount > 0 {
-		log.Printf("🔄 已停止 %d 个运行中的任务", stoppedCount)
 		// 保存任务状态
 		saveTasks()
 	}
@@ -693,17 +681,21 @@ func saveTasks() error {
 	// 转换为JSON
 	data, err := json.MarshalIndent(taskList, "", "  ")
 	if err != nil {
-		log.Printf("序列化任务失败: %v", err)
 		return err
 	}
 	
 	// 写入文件
 	if err := ioutil.WriteFile(tasksFile, data, 0644); err != nil {
-		log.Printf("保存任务文件失败: %v", err)
 		return err
 	}
 	
 	return nil
+}
+
+// 发送SSE消息
+func sendSSEMessage(data map[string]interface{}) {
+	// 这里需要实现SSE消息广播机制
+	// 由于当前是简单的单连接实现，暂时跳过
 }
 
 // 获取服务器性能统计

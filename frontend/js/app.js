@@ -46,8 +46,7 @@ function initSSE() {
     eventSource = new EventSource(API_BASE + '/events');
     
     eventSource.onopen = function() {
-        console.log('SSE连接已建立');
-        showToast('连接成功', 'success');
+        // 移除SSE连接日志
     };
     
     eventSource.onmessage = function(event) {
@@ -59,16 +58,15 @@ function initSSE() {
                 addLogEntry(data.task_id, data.log);
             } else if (data.type === 'heartbeat') {
                 // 心跳消息，保持连接活跃
-                console.log('SSE心跳');
+                // 减少日志输出
             }
         } catch (error) {
-            console.error('SSE消息解析失败:', error);
+            // 移除SSE消息解析错误日志
         }
     };
     
     eventSource.onerror = function(error) {
-        console.error('SSE连接错误:', error);
-        showToast('连接错误', 'error');
+        // 移除SSE错误日志
         // 5秒后重连
         setTimeout(initSSE, 5000);
     };
@@ -79,7 +77,7 @@ function startAutoRefresh() {
     if (autoRefreshInterval) {
         clearInterval(autoRefreshInterval);
     }
-    autoRefreshInterval = setInterval(refreshTasks, 30000); // 30秒刷新一次
+    autoRefreshInterval = setInterval(refreshTasks, 60000); // 60秒刷新一次，减少频率
 }
 
 // 显示加载状态
@@ -156,9 +154,9 @@ async function refreshTasks() {
         tasks = Array.isArray(data) ? data : [];
         renderTasks();
         updateStats();
-        showToast('任务列表已刷新', 'success');
+        // 减少toast提示，避免频繁弹窗
     } catch (error) {
-        console.error('刷新任务失败:', error);
+        // 移除刷新任务失败日志
         showToast('刷新任务失败: ' + error.message, 'error');
     } finally {
         hideLoading();
@@ -410,26 +408,57 @@ function updateSystemStats() {
         const minutes = Math.floor((uptime % (1000 * 60 * 60)) / (1000 * 60));
         systemUptimeElement.textContent = `${hours}h ${minutes}m`;
     }
+    
+    // 更新服务器性能统计
+    updateServerStats();
+}
+
+// 更新服务器性能统计
+async function updateServerStats() {
+    try {
+        const response = await fetch(API_BASE + '/server-stats');
+        if (response.ok) {
+            const stats = await response.json();
+            
+            // 更新服务器性能显示
+            const cpuElement = document.getElementById('serverCPU');
+            if (cpuElement) {
+                cpuElement.textContent = stats.cpu_usage.toFixed(1) + '%';
+            }
+            
+            const memoryElement = document.getElementById('serverMemory');
+            if (memoryElement) {
+                memoryElement.textContent = stats.memory_usage.toFixed(1) + '%';
+            }
+            
+            const goroutinesElement = document.getElementById('serverGoroutines');
+            if (goroutinesElement) {
+                goroutinesElement.textContent = stats.goroutines;
+            }
+            
+            const uptimeElement = document.getElementById('serverUptime');
+            if (uptimeElement) {
+                const hours = Math.floor(stats.uptime / 3600);
+                const minutes = Math.floor((stats.uptime % 3600) / 60);
+                uptimeElement.textContent = `${hours}h ${minutes}m`;
+            }
+        }
+    } catch (error) {
+        // 移除获取服务器统计失败日志
+    }
 }
 
 // 数字动画
 function animateNumber(elementId, targetValue) {
     const element = document.getElementById(elementId);
+    if (!element) return;
+    
     const currentValue = parseInt(element.textContent) || 0;
     
     if (currentValue === targetValue) return;
     
-    const increment = (targetValue - currentValue) / 20;
-    let current = currentValue;
-    
-    const timer = setInterval(() => {
-        current += increment;
-        if ((increment > 0 && current >= targetValue) || (increment < 0 && current <= targetValue)) {
-            current = targetValue;
-            clearInterval(timer);
-        }
-        element.textContent = Math.round(current);
-    }, 50);
+    // 简化动画，直接更新数值，避免频繁的setInterval
+    element.textContent = targetValue;
 }
 
 // 创建任务

