@@ -16,8 +16,19 @@ let chartData = {
     networkTx: []
 };
 
+// 每分钟数据聚合
+let minuteData = {
+    currentMinute: null,
+    cpu: [],
+    memory: [],
+    traffic: [],
+    goroutines: [],
+    networkRx: [],
+    networkTx: []
+};
+
 // 最大数据点数量
-const MAX_DATA_POINTS = 30; // 保留最近30个数据点，实时滚动显示
+const MAX_DATA_POINTS = 60; // 保留最近60分钟的数据
 
 let currentTask = null;
 let autoRefreshInterval = null;
@@ -101,8 +112,8 @@ function initCharts() {
                 x: {
                     type: 'time',
                     time: {
+                        unit: 'minute',
                         displayFormats: {
-                            second: 'HH:mm:ss',
                             minute: 'HH:mm'
                         }
                     },
@@ -172,8 +183,8 @@ function initCharts() {
                 x: {
                     type: 'time',
                     time: {
+                        unit: 'minute',
                         displayFormats: {
-                            second: 'HH:mm:ss',
                             minute: 'HH:mm'
                         }
                     },
@@ -238,8 +249,8 @@ function initCharts() {
                 x: {
                     type: 'time',
                     time: {
+                        unit: 'minute',
                         displayFormats: {
-                            second: 'HH:mm:ss',
                             minute: 'HH:mm'
                         }
                     },
@@ -304,8 +315,8 @@ function initCharts() {
                 x: {
                     type: 'time',
                     time: {
+                        unit: 'minute',
                         displayFormats: {
-                            second: 'HH:mm:ss',
                             minute: 'HH:mm'
                         }
                     },
@@ -370,8 +381,8 @@ function initCharts() {
                 x: {
                     type: 'time',
                     time: {
+                        unit: 'minute',
                         displayFormats: {
-                            second: 'HH:mm:ss',
                             minute: 'HH:mm'
                         }
                     },
@@ -436,8 +447,8 @@ function initCharts() {
                 x: {
                     type: 'time',
                     time: {
+                        unit: 'minute',
                         displayFormats: {
-                            second: 'HH:mm:ss',
                             minute: 'HH:mm'
                         }
                     },
@@ -466,7 +477,7 @@ function initCharts() {
     console.log('图表初始化完成');
 }
 
-// 更新图表数据 - 时间序列折线图
+// 更新图表数据 - 每分钟聚合最大值
 function updateCharts(serverStats, totalRequests) {
     console.log('更新图表数据:', { 
         serverStats, 
@@ -480,26 +491,57 @@ function updateCharts(serverStats, totalRequests) {
     
     // 获取当前时间
     const now = new Date();
+    const currentMinute = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours(), now.getMinutes());
     
-    // 添加新数据点
-    chartData.labels.push(now);
-    chartData.cpu.push(serverStats.cpu_usage);
-    chartData.memory.push(serverStats.memory_usage);
-    chartData.traffic.push(totalRequests);
-    chartData.goroutines.push(serverStats.goroutines);
-    chartData.networkRx.push(serverStats.network_rx);
-    chartData.networkTx.push(serverStats.network_tx);
-    
-    // 保持数据点数量在限制范围内
-    if (chartData.labels.length > MAX_DATA_POINTS) {
-        chartData.labels.shift();
-        chartData.cpu.shift();
-        chartData.memory.shift();
-        chartData.traffic.shift();
-        chartData.goroutines.shift();
-        chartData.networkRx.shift();
-        chartData.networkTx.shift();
+    // 如果是新的分钟，处理上一分钟的数据
+    if (minuteData.currentMinute && minuteData.currentMinute.getTime() !== currentMinute.getTime()) {
+        // 计算上一分钟的最大值
+        const maxCpu = Math.max(...minuteData.cpu);
+        const maxMemory = Math.max(...minuteData.memory);
+        const maxTraffic = Math.max(...minuteData.traffic);
+        const maxGoroutines = Math.max(...minuteData.goroutines);
+        const maxNetworkRx = Math.max(...minuteData.networkRx);
+        const maxNetworkTx = Math.max(...minuteData.networkTx);
+        
+        // 添加到图表数据
+        chartData.labels.push(minuteData.currentMinute);
+        chartData.cpu.push(maxCpu);
+        chartData.memory.push(maxMemory);
+        chartData.traffic.push(maxTraffic);
+        chartData.goroutines.push(maxGoroutines);
+        chartData.networkRx.push(maxNetworkRx);
+        chartData.networkTx.push(maxNetworkTx);
+        
+        // 保持数据点数量在限制范围内
+        if (chartData.labels.length > MAX_DATA_POINTS) {
+            chartData.labels.shift();
+            chartData.cpu.shift();
+            chartData.memory.shift();
+            chartData.traffic.shift();
+            chartData.goroutines.shift();
+            chartData.networkRx.shift();
+            chartData.networkTx.shift();
+        }
+        
+        // 重置当前分钟数据
+        minuteData.cpu = [];
+        minuteData.memory = [];
+        minuteData.traffic = [];
+        minuteData.goroutines = [];
+        minuteData.networkRx = [];
+        minuteData.networkTx = [];
     }
+    
+    // 更新当前分钟
+    minuteData.currentMinute = currentMinute;
+    
+    // 添加当前数据到分钟聚合
+    minuteData.cpu.push(serverStats.cpu_usage);
+    minuteData.memory.push(serverStats.memory_usage);
+    minuteData.traffic.push(totalRequests);
+    minuteData.goroutines.push(serverStats.goroutines);
+    minuteData.networkRx.push(serverStats.network_rx);
+    minuteData.networkTx.push(serverStats.network_tx);
     
     // 更新所有图表
     if (cpuChart) {
