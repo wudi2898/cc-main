@@ -45,9 +45,10 @@ type Task struct {
 	RandomPath       bool       `json:"random_path"`
 	RandomParams     bool       `json:"random_params"`
 	Schedule         bool       `json:"schedule"`
-	ScheduleInterval int        `json:"schedule_interval"`
-	ScheduleDuration int        `json:"schedule_duration"`
-	Status           TaskStatus `json:"status"`
+	ScheduleInterval int               `json:"schedule_interval"`
+	ScheduleDuration int               `json:"schedule_duration"`
+	CustomHeaders    map[string]string `json:"custom_headers"`
+	Status           TaskStatus        `json:"status"`
 	CreatedAt        time.Time  `json:"created_at"`
 	StartedAt        *time.Time `json:"started_at,omitempty"`
 	CompletedAt      *time.Time `json:"completed_at,omitempty"`

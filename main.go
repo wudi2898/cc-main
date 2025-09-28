@@ -39,6 +39,7 @@ type Config struct {
 	ScheduleInterval  int // 分钟
 	ScheduleDuration  int // 分钟
 	FireAndForget     bool // 火后不理模式，不接收响应
+	CustomHeaders     map[string]string // 自定义请求头
 }
 
 // 统计信息
@@ -561,6 +562,13 @@ func setAdvancedHeaders(req *http.Request, config *Config) {
 	// 为 POST 请求设置 Content-Type
 	if strings.ToLower(config.Mode) == "post" {
 		req.Header.Set("Content-Type", "application/json")
+	}
+	
+	// 设置自定义请求头
+	if config.CustomHeaders != nil {
+		for key, value := range config.CustomHeaders {
+			req.Header.Set(key, value)
+		}
 	}
 	
 	generateRandomHeaders(req, config)

@@ -1104,6 +1104,45 @@ function animateNumber(elementId, targetValue) {
     element.textContent = targetValue;
 }
 
+// 添加请求头输入框
+function addHeader() {
+    const container = document.getElementById('customHeadersContainer');
+    const div = document.createElement('div');
+    div.className = 'input-group mb-2';
+    div.innerHTML = `
+        <input type="text" class="form-control" placeholder="请求头名称" name="headerName">
+        <span class="input-group-text">:</span>
+        <input type="text" class="form-control" placeholder="请求头值" name="headerValue">
+        <button type="button" class="btn btn-outline-danger" onclick="removeHeader(this)">
+            <i class="bi bi-trash-fill"></i>
+        </button>
+    `;
+    container.appendChild(div);
+}
+
+// 删除请求头输入框
+function removeHeader(button) {
+    button.parentElement.remove();
+}
+
+// 获取自定义请求头
+function getCustomHeaders() {
+    const headers = {};
+    const container = document.getElementById('customHeadersContainer');
+    const inputs = container.querySelectorAll('.input-group');
+    
+    inputs.forEach(input => {
+        const nameInput = input.querySelector('input[name="headerName"]');
+        const valueInput = input.querySelector('input[name="headerValue"]');
+        
+        if (nameInput && valueInput && nameInput.value.trim() && valueInput.value.trim()) {
+            headers[nameInput.value.trim()] = valueInput.value.trim();
+        }
+    });
+    
+    return headers;
+}
+
 // 创建任务
 async function createTask() {
     const formData = {
@@ -1120,6 +1159,7 @@ async function createTask() {
         schedule: document.getElementById('schedule').checked,
         schedule_interval: parseInt(document.getElementById('scheduleInterval').value),
         schedule_duration: parseInt(document.getElementById('scheduleDuration').value),
+        custom_headers: getCustomHeaders(),
         status: document.getElementById('status').value
     };
 
