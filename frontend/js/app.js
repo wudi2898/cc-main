@@ -1204,6 +1204,7 @@ async function createTask() {
         schedule_interval: parseInt(document.getElementById('scheduleInterval').value),
         schedule_duration: parseInt(document.getElementById('scheduleDuration').value),
         custom_headers: getCustomHeaders(),
+        fire_and_forget: document.getElementById('fireAndForget').checked,
         status: document.getElementById('status').value
     };
 
@@ -1378,6 +1379,7 @@ function editTask(taskId) {
     form.querySelector('#editSchedule').checked = task.schedule;
     form.querySelector('#editScheduleInterval').value = task.schedule_interval;
     form.querySelector('#editScheduleDuration').value = task.schedule_duration;
+    form.querySelector('#editFireAndForget').checked = task.fire_and_forget || false;
     
     // 填充自定义请求头
     const editHeadersContainer = document.getElementById('editCustomHeadersContainer');
@@ -1415,7 +1417,8 @@ async function updateTask() {
         schedule: form.querySelector('#editSchedule').checked,
         schedule_interval: parseInt(form.querySelector('#editScheduleInterval').value),
         schedule_duration: parseInt(form.querySelector('#editScheduleDuration').value),
-        custom_headers: getEditCustomHeaders()
+        custom_headers: getEditCustomHeaders(),
+        fire_and_forget: form.querySelector('#editFireAndForget').checked
     };
 
     // 验证表单

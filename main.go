@@ -537,7 +537,7 @@ func workerWithRateLimit(config *Config, rpsPerThread int, done <-chan struct{},
 	}
 }
 
-// 火后不理攻击函数，不接收响应数据
+// 火后不理攻击函数，不接收响应数据但统计错误
 func performFireAndForgetAttack(config *Config) int {
 	if config.TargetURL == "" {
 		return 0
@@ -575,12 +575,39 @@ func performFireAndForgetAttack(config *Config) int {
 
 	setAdvancedHeaders(req, config)
 
-	// 火后不理模式：只发送请求，不等待响应
+	// 火后不理模式：异步发送请求并统计错误
 	go func() {
-		client.Do(req)
+		resp, err := client.Do(req)
+		statusCode := 0
+		
+		if err != nil {
+			// 网络错误
+			statusCode = -1
+		} else if resp != nil {
+			statusCode = resp.StatusCode
+			// 快速关闭连接，不读取响应体
+			if resp.Body != nil {
+				resp.Body.Close()
+			}
+		} else {
+			// 无响应
+			statusCode = -2
+		}
+		
+		// 统计错误码
+		stats.mu.Lock()
+		stats.ErrorCodes[statusCode]++
+		stats.mu.Unlock()
+		
+		// 更新成功/失败统计
+		if statusCode >= 200 && statusCode < 400 {
+			atomic.AddInt64(&stats.SuccessfulReqs, 1)
+		} else {
+			atomic.AddInt64(&stats.FailedReqs, 1)
+		}
 	}()
 
-	// 假设请求成功发送
+	// 立即返回，不等待响应
 	return 200
 }
 
@@ -979,8 +1006,8 @@ func printFinalStats() {
 	fmt.Printf("平均RPS: %.2f\n", avgRPS)
 	fmt.Printf("运行时间: %.2f秒\n", uptime)
 	
-	// 输出错误码统计
-	fmt.Printf("\n📊 错误码统计:\n")
+	// 输出详细错误统计
+	fmt.Printf("\n📊 详细错误统计:\n")
 	if len(stats.ErrorCodes) > 0 {
 		// 按状态码排序
 		var codes []int
@@ -989,13 +1016,117 @@ func printFinalStats() {
 		}
 		sort.Ints(codes)
 		
+		// 分类显示错误
+		successCount := 0
+		clientErrorCount := 0
+		serverErrorCount := 0
+		networkErrorCount := 0
+		
 		for _, code := range codes {
 			count := stats.ErrorCodes[code]
 			percentage := float64(count) / float64(total) * 100
-			fmt.Printf("  %d: %d 次 (%.2f%%)\n", code, count, percentage)
+			
+			// 错误分类
+			var errorType, description string
+			switch {
+			case code >= 200 && code < 300:
+				errorType = "✅ 成功"
+				description = "请求成功"
+				successCount += count
+			case code >= 300 && code < 400:
+				errorType = "🔄 重定向"
+				description = "需要重定向"
+			case code >= 400 && code < 500:
+				errorType = "❌ 客户端错误"
+				description = getClientErrorDescription(code)
+				clientErrorCount += count
+			case code >= 500:
+				errorType = "🔥 服务器错误"
+				description = getServerErrorDescription(code)
+				serverErrorCount += count
+			case code == -1:
+				errorType = "🌐 网络错误"
+				description = "连接失败/超时"
+				networkErrorCount += count
+			case code == -2:
+				errorType = "⏰ 无响应"
+				description = "服务器无响应"
+				networkErrorCount += count
+			case code == 0:
+				errorType = "❓ 未知错误"
+				description = "无法确定状态"
+				networkErrorCount += count
+			default:
+				errorType = "❓ 其他"
+				description = "未知状态码"
+			}
+			
+			fmt.Printf("  %s %d: %d 次 (%.2f%%) - %s\n", errorType, code, count, percentage, description)
 		}
+		
+		// 错误汇总
+		fmt.Printf("\n📈 错误汇总:\n")
+		fmt.Printf("  ✅ 成功请求: %d 次 (%.2f%%)\n", successCount, float64(successCount)/float64(total)*100)
+		fmt.Printf("  ❌ 客户端错误: %d 次 (%.2f%%)\n", clientErrorCount, float64(clientErrorCount)/float64(total)*100)
+		fmt.Printf("  🔥 服务器错误: %d 次 (%.2f%%)\n", serverErrorCount, float64(serverErrorCount)/float64(total)*100)
+		fmt.Printf("  🌐 网络错误: %d 次 (%.2f%%)\n", networkErrorCount, float64(networkErrorCount)/float64(total)*100)
+		
 	} else {
 		fmt.Printf("  无错误码记录\n")
+	}
+}
+
+// 获取客户端错误描述
+func getClientErrorDescription(code int) string {
+	switch code {
+	case 400:
+		return "请求格式错误"
+	case 401:
+		return "未授权访问"
+	case 403:
+		return "禁止访问"
+	case 404:
+		return "页面不存在"
+	case 405:
+		return "方法不允许"
+	case 408:
+		return "请求超时"
+	case 413:
+		return "请求体过大"
+	case 414:
+		return "URL过长"
+	case 429:
+		return "请求过于频繁"
+	case 451:
+		return "因法律原因不可用"
+	default:
+		return "客户端错误"
+	}
+}
+
+// 获取服务器错误描述
+func getServerErrorDescription(code int) string {
+	switch code {
+	case 500:
+		return "服务器内部错误"
+	case 501:
+		return "功能未实现"
+	case 502:
+		return "网关错误"
+	case 503:
+		return "服务不可用"
+	case 504:
+		return "网关超时"
+	case 505:
+		return "HTTP版本不支持"
+	case 507:
+		return "存储空间不足"
+	case 508:
+		return "检测到循环"
+	case 510:
+		return "扩展错误"
+	default:
+		return "服务器错误"
 	}
 }
 

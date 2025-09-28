@@ -49,6 +49,7 @@ type Task struct {
 	ScheduleInterval int               `json:"schedule_interval"`
 	ScheduleDuration int               `json:"schedule_duration"`
 	CustomHeaders    map[string]string `json:"custom_headers"`
+	FireAndForget    bool              `json:"fire_and_forget"`
 	Status           TaskStatus        `json:"status"`
 	CreatedAt        time.Time  `json:"created_at"`
 	StartedAt        *time.Time `json:"started_at,omitempty"`
@@ -261,6 +262,7 @@ func updateTask(w http.ResponseWriter, r *http.Request) {
 	task.ScheduleInterval = updates.ScheduleInterval
 	task.ScheduleDuration = updates.ScheduleDuration
 	task.CustomHeaders = updates.CustomHeaders
+	task.FireAndForget = updates.FireAndForget
 	
 	tasksMutex.Unlock()
 	
