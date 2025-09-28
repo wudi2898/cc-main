@@ -260,6 +260,7 @@ func updateTask(w http.ResponseWriter, r *http.Request) {
 	task.Schedule = updates.Schedule
 	task.ScheduleInterval = updates.ScheduleInterval
 	task.ScheduleDuration = updates.ScheduleDuration
+	task.CustomHeaders = updates.CustomHeaders
 	
 	tasksMutex.Unlock()
 	

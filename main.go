@@ -231,21 +231,41 @@ func startAttack(config *Config) {
 		return
 	}
 
-	interval := time.Second / time.Duration(config.RPS)
-	if interval <= 0 {
-		interval = time.Nanosecond // 最小间隔防止panic，但通常不会到这里
+	fmt.Printf("🎯 开始攻击，目标RPS: %d\n", config.RPS)
+	
+	// 计算每个线程应该处理的RPS
+	threads := config.Threads
+	if threads <= 0 {
+		threads = 1
 	}
-	rateLimiter := time.NewTicker(interval)
-	defer rateLimiter.Stop()
+	
+	// 确保线程数足够支持目标RPS
+	// 每个线程最多处理100 RPS，所以需要 config.RPS/100 个线程
+	minThreads := (config.RPS + 99) / 100 // 向上取整
+	if threads < minThreads {
+		oldThreads := threads
+		threads = minThreads
+		fmt.Printf("⚠️  调整线程数从 %d 到 %d 以支持RPS %d (每线程最多100 RPS)\n", oldThreads, threads, config.RPS)
+	}
+	
+	// 计算每个线程的RPS
+	rpsPerThread := config.RPS / threads
+	if rpsPerThread <= 0 {
+		rpsPerThread = 1
+	}
+	
+	fmt.Printf("📊 配置: %d个线程，每线程RPS: %d\n", threads, rpsPerThread)
 
 	done := make(chan struct{})
 	var wg sync.WaitGroup
-	for i := 0; i < config.Threads; i++ {
+	
+	// 为每个线程创建独立的rate limiter
+	for i := 0; i < threads; i++ {
 		wg.Add(1)
-		go func() {
+		go func(threadID int) {
 			defer wg.Done()
-			worker(config, rateLimiter.C, done)
-		}()
+			workerWithRateLimit(config, rpsPerThread, done, threadID)
+		}(i)
 	}
 
 	time.Sleep(time.Duration(config.Duration) * time.Second)
@@ -273,7 +293,11 @@ func startScheduledAttack(config *Config) {
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 
-	// 先等待第一次定时器触发
+	// 立即执行第一次攻击
+	fmt.Printf("🚀 立即执行第一次攻击...\n")
+	go executeAttack(config, config.ScheduleDuration)
+	
+	// 然后等待定时器触发
 	fmt.Printf("⏳ 等待第一次定时器触发...\n")
 	firstTrigger := <-ticker.C
 	fmt.Printf("🔔 第一次定时器触发: %s\n", firstTrigger.Format("2006-01-02 15:04:05"))
@@ -331,32 +355,13 @@ func executeAttack(config *Config, durationMinutes int) {
 		}
 	}
 	
-	// 使用信号量控制并发，避免资源耗尽
-	bufferSize := config.RPS
-	if bufferSize > 10000 {
-		bufferSize = 10000 // 限制最大缓冲区
-	}
-	semaphore := make(chan struct{}, bufferSize)
-	
-	// 预填充信号量
-	for i := 0; i < config.RPS; i++ {
-		semaphore <- struct{}{}
+	// 计算每个线程的RPS
+	rpsPerThread := config.RPS / threads
+	if rpsPerThread <= 0 {
+		rpsPerThread = 1
 	}
 	
-	// 启动信号量补充goroutine
-	go func() {
-		ticker := time.NewTicker(time.Second / time.Duration(config.RPS))
-		defer ticker.Stop()
-		for {
-			select {
-			case <-ticker.C:
-				select {
-				case semaphore <- struct{}{}:
-				default:
-				}
-			}
-		}
-	}()
+	fmt.Printf("📊 高并发配置: %d个线程，每线程RPS: %d\n", threads, rpsPerThread)
 
 	done := make(chan struct{})
 	var wg sync.WaitGroup
@@ -366,15 +371,15 @@ func executeAttack(config *Config, durationMinutes int) {
 	for i := 0; i < threads; i++ {
 		wg.Add(1)
 		if config.FireAndForget {
-			go func() {
+			go func(threadID int) {
 				defer wg.Done()
-				fireAndForgetWorker(config, semaphore, done)
-			}()
+				fireAndForgetWorkerWithRateLimit(config, rpsPerThread, done, threadID)
+			}(i)
 		} else {
-			go func() {
+			go func(threadID int) {
 				defer wg.Done()
-				highConcurrencyWorker(config, semaphore, done)
-			}()
+				highConcurrencyWorkerWithRateLimit(config, rpsPerThread, done, threadID)
+			}(i)
 		}
 	}
 
@@ -480,6 +485,53 @@ func worker(config *Config, rateLimit <-chan time.Time, done <-chan struct{}) {
 				atomic.AddInt64(&stats.FailedReqs, 1)
 			}
 		case <-done:
+			return
+		}
+	}
+}
+
+// 带速率限制的worker函数
+func workerWithRateLimit(config *Config, rpsPerThread int, done <-chan struct{}, threadID int) {
+	// 为每个线程创建独立的rate limiter
+	interval := time.Second / time.Duration(rpsPerThread)
+	if interval <= 0 {
+		interval = time.Nanosecond
+	}
+	
+	rateLimiter := time.NewTicker(interval)
+	defer rateLimiter.Stop()
+	
+	requestCount := 0
+	startTime := time.Now()
+	
+	for {
+		select {
+		case <-rateLimiter.C:
+			statusCode := performAttack(config)
+			atomic.AddInt64(&stats.TotalRequests, 1)
+			requestCount++
+			
+			// 每100个请求输出一次线程状态
+			if requestCount%100 == 0 {
+				elapsed := time.Since(startTime)
+				actualRPS := float64(requestCount) / elapsed.Seconds()
+				fmt.Printf("🧵 线程%d: 已发送%d个请求, 实际RPS: %.2f\n", threadID, requestCount, actualRPS)
+			}
+			
+			// 统计错误码
+			stats.mu.Lock()
+			stats.ErrorCodes[statusCode]++
+			stats.mu.Unlock()
+			
+			if statusCode >= 200 && statusCode < 400 {
+				atomic.AddInt64(&stats.SuccessfulReqs, 1)
+			} else {
+				atomic.AddInt64(&stats.FailedReqs, 1)
+			}
+		case <-done:
+			elapsed := time.Since(startTime)
+			actualRPS := float64(requestCount) / elapsed.Seconds()
+			fmt.Printf("🏁 线程%d完成: 总请求%d, 实际RPS: %.2f\n", threadID, requestCount, actualRPS)
 			return
 		}
 	}
@@ -965,4 +1017,99 @@ func updateAPICORSErrors(corsErrors int64) {
 		return
 	}
 	defer resp.Body.Close()
+}
+
+// 带速率限制的火后不理worker
+func fireAndForgetWorkerWithRateLimit(config *Config, rpsPerThread int, done <-chan struct{}, threadID int) {
+	interval := time.Second / time.Duration(rpsPerThread)
+	if interval <= 0 {
+		interval = time.Nanosecond
+	}
+	
+	rateLimiter := time.NewTicker(interval)
+	defer rateLimiter.Stop()
+	
+	requestCount := 0
+	startTime := time.Now()
+	
+	for {
+		select {
+		case <-rateLimiter.C:
+			// 火后不理模式：只发送请求，不等待响应
+			go func() {
+				statusCode := performFireAndForgetAttack(config)
+				atomic.AddInt64(&stats.TotalRequests, 1)
+				
+				// 统计错误码
+				stats.mu.Lock()
+				stats.ErrorCodes[statusCode]++
+				stats.mu.Unlock()
+				
+				if statusCode >= 200 && statusCode < 400 {
+					atomic.AddInt64(&stats.SuccessfulReqs, 1)
+				} else {
+					atomic.AddInt64(&stats.FailedReqs, 1)
+				}
+			}()
+			requestCount++
+			
+			// 每1000个请求输出一次线程状态
+			if requestCount%1000 == 0 {
+				elapsed := time.Since(startTime)
+				actualRPS := float64(requestCount) / elapsed.Seconds()
+				fmt.Printf("🔥 火后不理线程%d: 已发送%d个请求, 实际RPS: %.2f\n", threadID, requestCount, actualRPS)
+			}
+		case <-done:
+			elapsed := time.Since(startTime)
+			actualRPS := float64(requestCount) / elapsed.Seconds()
+			fmt.Printf("🏁 火后不理线程%d完成: 总请求%d, 实际RPS: %.2f\n", threadID, requestCount, actualRPS)
+			return
+		}
+	}
+}
+
+// 带速率限制的高并发worker
+func highConcurrencyWorkerWithRateLimit(config *Config, rpsPerThread int, done <-chan struct{}, threadID int) {
+	interval := time.Second / time.Duration(rpsPerThread)
+	if interval <= 0 {
+		interval = time.Nanosecond
+	}
+	
+	rateLimiter := time.NewTicker(interval)
+	defer rateLimiter.Stop()
+	
+	requestCount := 0
+	startTime := time.Now()
+	
+	for {
+		select {
+		case <-rateLimiter.C:
+			statusCode := performAttack(config)
+			atomic.AddInt64(&stats.TotalRequests, 1)
+			requestCount++
+			
+			// 每100个请求输出一次线程状态
+			if requestCount%100 == 0 {
+				elapsed := time.Since(startTime)
+				actualRPS := float64(requestCount) / elapsed.Seconds()
+				fmt.Printf("⚡ 高并发线程%d: 已发送%d个请求, 实际RPS: %.2f\n", threadID, requestCount, actualRPS)
+			}
+			
+			// 统计错误码
+			stats.mu.Lock()
+			stats.ErrorCodes[statusCode]++
+			stats.mu.Unlock()
+			
+			if statusCode >= 200 && statusCode < 400 {
+				atomic.AddInt64(&stats.SuccessfulReqs, 1)
+			} else {
+				atomic.AddInt64(&stats.FailedReqs, 1)
+			}
+		case <-done:
+			elapsed := time.Since(startTime)
+			actualRPS := float64(requestCount) / elapsed.Seconds()
+			fmt.Printf("🏁 高并发线程%d完成: 总请求%d, 实际RPS: %.2f\n", threadID, requestCount, actualRPS)
+			return
+		}
+	}
 }

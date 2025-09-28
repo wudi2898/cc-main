@@ -1148,6 +1148,45 @@ function getCustomHeaders() {
     return headers;
 }
 
+// 添加编辑请求头输入框
+function addEditHeader(name = '', value = '') {
+    const container = document.getElementById('editCustomHeadersContainer');
+    const div = document.createElement('div');
+    div.className = 'input-group mb-2';
+    div.innerHTML = `
+        <input type="text" class="form-control" placeholder="请求头名称" name="editHeaderName" value="${name}">
+        <span class="input-group-text">:</span>
+        <input type="text" class="form-control" placeholder="请求头值" name="editHeaderValue" value="${value}">
+        <button type="button" class="btn btn-outline-danger" onclick="removeEditHeader(this)">
+            <i class="bi bi-trash-fill"></i>
+        </button>
+    `;
+    container.appendChild(div);
+}
+
+// 删除编辑请求头输入框
+function removeEditHeader(button) {
+    button.parentElement.remove();
+}
+
+// 获取编辑自定义请求头
+function getEditCustomHeaders() {
+    const headers = {};
+    const container = document.getElementById('editCustomHeadersContainer');
+    const inputs = container.querySelectorAll('.input-group');
+    
+    inputs.forEach(input => {
+        const nameInput = input.querySelector('input[name="editHeaderName"]');
+        const valueInput = input.querySelector('input[name="editHeaderValue"]');
+        
+        if (nameInput && valueInput && nameInput.value.trim() && valueInput.value.trim()) {
+            headers[nameInput.value.trim()] = valueInput.value.trim();
+        }
+    });
+    
+    return headers;
+}
+
 // 创建任务
 async function createTask() {
     const formData = {
@@ -1340,6 +1379,19 @@ function editTask(taskId) {
     form.querySelector('#editScheduleInterval').value = task.schedule_interval;
     form.querySelector('#editScheduleDuration').value = task.schedule_duration;
     
+    // 填充自定义请求头
+    const editHeadersContainer = document.getElementById('editCustomHeadersContainer');
+    if (editHeadersContainer) {
+        editHeadersContainer.innerHTML = '';
+        if (task.custom_headers && Object.keys(task.custom_headers).length > 0) {
+            for (const [key, value] of Object.entries(task.custom_headers)) {
+                addEditHeader(key, value);
+            }
+        } else {
+            addEditHeader('', '');
+        }
+    }
+    
     // 显示编辑模态框
     new bootstrap.Modal(document.getElementById('editTaskModal')).show();
 }
@@ -1362,7 +1414,8 @@ async function updateTask() {
         random_params: form.querySelector('#randomParams').checked,
         schedule: form.querySelector('#editSchedule').checked,
         schedule_interval: parseInt(form.querySelector('#editScheduleInterval').value),
-        schedule_duration: parseInt(form.querySelector('#editScheduleDuration').value)
+        schedule_duration: parseInt(form.querySelector('#editScheduleDuration').value),
+        custom_headers: getEditCustomHeaders()
     };
 
     // 验证表单

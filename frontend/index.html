@@ -1277,6 +1277,28 @@
                                 </div>
                             </div>
                         </div>
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="mb-3">
+                                    <label class="form-label">
+                                        <i class="bi bi-list-ul"></i> 自定义请求头
+                                    </label>
+                                    <div id="editCustomHeadersContainer">
+                                        <div class="input-group mb-2">
+                                            <input type="text" class="form-control" placeholder="请求头名称" name="editHeaderName">
+                                            <span class="input-group-text">:</span>
+                                            <input type="text" class="form-control" placeholder="请求头值" name="editHeaderValue">
+                                            <button type="button" class="btn btn-outline-danger" onclick="removeEditHeader(this)">
+                                                <i class="bi bi-trash-fill"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <button type="button" class="btn btn-outline-primary btn-sm" onclick="addEditHeader()">
+                                        <i class="bi bi-plus-circle-fill"></i> 添加请求头
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                     </form>
                 </div>
                 <div class="modal-footer">
