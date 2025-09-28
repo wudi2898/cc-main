@@ -2,8 +2,10 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"crypto/tls"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
@@ -781,10 +783,13 @@ func statsReporter() {
 		}
 
 		// 输出实时统计信息
-		fmt.Printf("📊 实时统计: 总请求=%d, 成功=%d, 失败=%d, 当前RPS=%.2f, 平均RPS=%.2f, 运行时间=%.2fs\n", 
-			stats.TotalRequests, stats.SuccessfulReqs, stats.FailedReqs, stats.CurrentRPS, stats.AvgRPS, uptime)
-		fmt.Printf("STATS_JSON:{\"total_requests\":%d,\"successful_reqs\":%d,\"failed_reqs\":%d,\"current_rps\":%.2f,\"avg_rps\":%.2f,\"uptime\":%.2f}\n", 
-			stats.TotalRequests, stats.SuccessfulReqs, stats.FailedReqs, stats.CurrentRPS, stats.AvgRPS, uptime)
+		fmt.Printf("📊 实时统计: 总请求=%d, 成功=%d, 失败=%d, 当前RPS=%.2f, 平均RPS=%.2f, 运行时间=%.2fs, CORS错误=%d\n", 
+			stats.TotalRequests, stats.SuccessfulReqs, stats.FailedReqs, stats.CurrentRPS, stats.AvgRPS, uptime, stats.CORSErrors)
+		fmt.Printf("STATS_JSON:{\"total_requests\":%d,\"successful_reqs\":%d,\"failed_reqs\":%d,\"current_rps\":%.2f,\"avg_rps\":%.2f,\"uptime\":%.2f,\"cors_errors\":%d}\n", 
+			stats.TotalRequests, stats.SuccessfulReqs, stats.FailedReqs, stats.CurrentRPS, stats.AvgRPS, uptime, stats.CORSErrors)
+
+		// 向API服务器发送CORS错误统计
+		go updateAPICORSErrors(stats.CORSErrors)
 
 		stats.mu.Unlock()
 	}
@@ -804,6 +809,7 @@ func printFinalStats() {
 	fmt.Printf("总请求数: %d\n", total)
 	fmt.Printf("成功请求: %d\n", success)
 	fmt.Printf("失败请求: %d\n", fail)
+	fmt.Printf("CORS错误: %d\n", stats.CORSErrors)
 	fmt.Printf("平均RPS: %.2f\n", avgRPS)
 	fmt.Printf("运行时间: %.2f秒\n", uptime)
 	
@@ -825,4 +831,24 @@ func printFinalStats() {
 	} else {
 		fmt.Printf("  无错误码记录\n")
 	}
+}
+
+// 向API服务器发送CORS错误统计
+func updateAPICORSErrors(corsErrors int64) {
+	client := &http.Client{Timeout: 5 * time.Second}
+	
+	data := map[string]int64{
+		"cors_errors": corsErrors,
+	}
+	
+	jsonData, err := json.Marshal(data)
+	if err != nil {
+		return
+	}
+	
+	resp, err := client.Post("http://localhost:8080/api/update-cors-errors", "application/json", bytes.NewBuffer(jsonData))
+	if err != nil {
+		return
+	}
+	defer resp.Body.Close()
 }

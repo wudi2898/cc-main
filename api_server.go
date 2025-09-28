@@ -94,6 +94,7 @@ var (
 	lastNetTime  time.Time
 	schedulers   = make(map[string]*time.Ticker) // 定时任务调度器
 	schedulerMutex sync.RWMutex
+	corsErrors   int64 // CORS错误统计
 )
 
 func main() {
@@ -128,6 +129,7 @@ func main() {
 	
 	// 服务器性能API
 	api.HandleFunc("/server-stats", getServerStats).Methods("GET")
+	api.HandleFunc("/update-cors-errors", updateCORSErrors).Methods("POST")
 	
 	// 静态文件服务（放在最后，避免拦截API请求）
 	r.PathPrefix("/").Handler(http.FileServer(http.Dir("./frontend/")))
@@ -779,6 +781,24 @@ func getServerStats(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(serverStats)
 }
 
+// 更新CORS错误统计
+func updateCORSErrors(w http.ResponseWriter, r *http.Request) {
+	var request struct {
+		CORSErrors int64 `json:"cors_errors"`
+	}
+	
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+	
+	atomic.StoreInt64(&corsErrors, request.CORSErrors)
+	
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	json.NewEncoder(w).Encode(map[string]string{"status": "success"})
+}
+
 // 更新服务器性能统计
 func updateServerStats() {
 	ticker := time.NewTicker(1 * time.Second) // 改为每秒更新
@@ -805,7 +825,7 @@ func updateServerStats() {
 		serverStats.CPUUsage = calculateCPUUsage()
 		
 		// 更新CORS错误统计
-		serverStats.CORSErrors = atomic.LoadInt64(&stats.CORSErrors)
+		serverStats.CORSErrors = atomic.LoadInt64(&corsErrors)
 		
 		// 更新网络速度
 		updateNetworkStats()
