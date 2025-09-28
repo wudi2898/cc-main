@@ -1017,10 +1017,10 @@ func printFinalStats() {
 		sort.Ints(codes)
 		
 		// 分类显示错误
-		successCount := 0
-		clientErrorCount := 0
-		serverErrorCount := 0
-		networkErrorCount := 0
+		successCount := int64(0)
+		clientErrorCount := int64(0)
+		serverErrorCount := int64(0)
+		networkErrorCount := int64(0)
 		
 		for _, code := range codes {
 			count := stats.ErrorCodes[code]
