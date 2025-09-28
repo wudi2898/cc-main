@@ -14,6 +14,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"syscall"
 	"time"
 
@@ -77,6 +78,7 @@ type ServerStats struct {
 	Uptime      float64 `json:"uptime"`
 	NetworkRx   float64 `json:"network_rx"`   // 接收速度 (MB/s)
 	NetworkTx   float64 `json:"network_tx"`   // 发送速度 (MB/s)
+	CORSErrors  int64   `json:"cors_errors"`  // CORS错误统计
 	StartTime   time.Time
 }
 
@@ -801,6 +803,9 @@ func updateServerStats() {
 		
 		// 更准确的CPU使用率计算
 		serverStats.CPUUsage = calculateCPUUsage()
+		
+		// 更新CORS错误统计
+		serverStats.CORSErrors = atomic.LoadInt64(&stats.CORSErrors)
 		
 		// 更新网络速度
 		updateNetworkStats()

@@ -1075,6 +1075,11 @@ async function updateServerStats() {
                 uptimeElement.textContent = `${hours}h ${minutes}m`;
             }
             
+            const corsErrorsElement = document.getElementById('serverCORSErrors');
+            if (corsErrorsElement) {
+                corsErrorsElement.textContent = stats.cors_errors || 0;
+            }
+            
             // 计算总请求数并更新图表数据
             let totalRequests = 0;
             if (tasks && Array.isArray(tasks)) {

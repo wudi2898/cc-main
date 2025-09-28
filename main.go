@@ -53,6 +53,7 @@ type Stats struct {
 	LastStatsTime   time.Time
 	LastTotalReqs   int64
 	ErrorCodes      map[int]int64 // 错误码统计
+	CORSErrors      int64         // CORS错误统计
 	mu              sync.RWMutex
 }
 
@@ -468,7 +469,26 @@ func performAttack(config *Config) int {
 		return 0
 	}
 
-	// 移除状态码输出
+	// 检测CORS错误 - 只有成功响应才不算CORS错误
+	if resp.StatusCode >= 200 && resp.StatusCode < 400 {
+		// 成功响应，检查是否有CORS头
+		corsHeaders := []string{"Access-Control-Allow-Origin", "Access-Control-Allow-Credentials", "Access-Control-Allow-Methods"}
+		hasCORSHeaders := false
+		for _, header := range corsHeaders {
+			if resp.Header.Get(header) != "" {
+				hasCORSHeaders = true
+				break
+			}
+		}
+		
+		// 成功响应但没有CORS头，说明可能被CORS策略阻止了
+		if !hasCORSHeaders {
+			atomic.AddInt64(&stats.CORSErrors, 1)
+		}
+	} else {
+		// 失败响应直接算作CORS错误
+		atomic.AddInt64(&stats.CORSErrors, 1)
+	}
 
 	// 统计已在worker中处理，这里不需要重复计算
 
@@ -563,6 +583,11 @@ func setAdvancedHeaders(req *http.Request, config *Config) {
 	if strings.ToLower(config.Mode) == "post" {
 		req.Header.Set("Content-Type", "application/json")
 	}
+	
+	// 设置CORS相关请求头
+	req.Header.Set("Origin", "https://www.cryptunex.ai")
+	req.Header.Set("Access-Control-Request-Method", strings.ToUpper(config.Mode))
+	req.Header.Set("Access-Control-Request-Headers", "content-type,authorization")
 	
 	// 设置自定义请求头
 	if config.CustomHeaders != nil {
